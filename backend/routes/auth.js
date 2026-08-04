@@ -1,108 +1,86 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const path = require('path');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User'); // Siguraduhing tama ang path patungo sa iyong User.js model
+const User = require('../models/User'); // Siguraduhing tama ang path patungo sa User Model mo
 
-// -------------------------------------------------------------
-// 1. MULTER SETUP PARA SA PROFILE PICTURE UPLOADS
-// -------------------------------------------------------------
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    // Ilalagay ang in-upload na avatar sa uploads/ folder sa backend
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    // Unique filename gamit ang timestamp
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, 'avatar-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({ storage });
-
-// -------------------------------------------------------------
-// 2. AUTHENTICATION MIDDLEWARE
-// -------------------------------------------------------------
-const authMiddleware = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ message: 'Walang token, kailangan mag-login.' });
-  }
-
+// 1. REGISTER ROUTE
+router.post('/register', async (req, res) => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secretkey123');
-    req.user = decoded;
-    next();
-  } catch (err) {
-    res.status(403).json({ message: 'Invalid o expired na token.' });
-  }
-};
+    const { username, password } = req.body;
 
-// -------------------------------------------------------------
-// 3. ROUTES
-// -------------------------------------------------------------
-
-// GET CURRENT USER PROFILE (Kunin ang profile info ng nakalog-in na user)
-router.get('/profile/me', authMiddleware, async (req, res) => {
-  try {
-    const userId = req.user.id || req.user._id || req.user.userId;
-    const user = await User.findById(userId).select('-password');
-    if (!user) {
-      return res.status(404).json({ message: 'User hindi nahanap.' });
-    }
-    res.json(user);
-  } catch (err) {
-    console.error('Get Profile Error:', err);
-    res.status(500).json({ message: 'Server error sa pagkuha ng profile.' });
-  }
-});
-
-// GET USER PROFILE BY ID (Para sa pag-view ng profile ng ibang tao)
-router.get('/profile/:id', authMiddleware, async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id).select('-password');
-    if (!user) {
-      return res.status(404).json({ message: 'User hindi nahanap.' });
-    }
-    res.json(user);
-  } catch (err) {
-    res.status(500).json({ message: 'Server error sa pagkuha ng user profile.' });
-  }
-});
-
-// UPDATE USER PROFILE (BIO & AVATAR EDIT)
-router.put('/profile', authMiddleware, upload.single('avatar'), async (req, res) => {
-  try {
-    const userId = req.user.id || req.user._id || req.user.userId;
-    const { bio } = req.body;
-
-    const updateData = {};
-    if (bio !== undefined) {
-      updateData.bio = bio;
+    // Check kung kumpleto ang ibinigay na data
+    if (!username || !password) {
+      return res.status(400).json({ message: "Paki-fill up ang username at password." });
     }
 
-    // Kapag may in-upload na bagong larawan
-    if (req.file) {
-      updateData.avatar = `http://localhost:5000/uploads/${req.file.filename}`;
+    // Check kung may umiiral nang user sa MongoDB
+    const existingUser = await User.findOne({ username });
+    if (existingUser) {
+      return res.status(400).json({ message: "May gumagamit na ng username na ito." });
     }
 
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { $set: updateData },
-      { new: true }
-    ).select('-password');
+    // I-hash ang password bago i-save sa database para secure
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    res.json({
-      message: 'Matagumpay na na-update ang profile!',
-      user: updatedUser
+    // Gawa ng bagong user document
+    const newUser = new User({
+      username,
+      password: hashedPassword
     });
-  } catch (err) {
-    console.error('Update Profile Error:', err);
-    res.status(500).json({ message: 'Server error sa pag-update ng profile.' });
+
+    await newUser.save();
+
+    res.status(201).json({ message: "Gumana! Na-save na ang user sa MongoDB." });
+  } catch (error) {
+    console.error("Register Error:", error);
+    res.status(500).json({ message: "Server error sa pag-register." });
+  }
+});
+
+// 2. LOGIN ROUTE (Ito ang nagse-send ng JWT Token)
+router.post('/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    // Check kung kumpleto ang ibinigay na data
+    if (!username || !password) {
+      return res.status(400).json({ message: "Kailangan ang username at password." });
+    }
+
+    // Hanapin ang user sa MongoDB
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(400).json({ message: "Maling username o password." });
+    }
+
+    // I-compare ang pumasok na password sa naka-hash na password sa database
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Maling username o password." });
+    }
+
+    // Mag-generate ng JWT Token
+    const jwtSecret = process.env.JWT_SECRET || 'secretkey123';
+    const token = jwt.sign(
+      { id: user._id, username: user.username },
+      jwtSecret,
+      { expiresIn: '1d' } // Mag-e-expire ang token pagkalipas ng 1 araw
+    );
+
+    // Ibalik ang response kasama ang TOKEN sa frontend
+    res.status(200).json({
+      message: "Login successful!",
+      token: token,
+      user: {
+        id: user._id,
+        username: user.username
+      }
+    });
+
+  } catch (error) {
+    console.error("Login Error:", error);
+    res.status(500).json({ message: "Server error sa pag-login." });
   }
 });
 
