@@ -1,0 +1,214 @@
+/* Base Layout - Light Mode */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: #f7f9fa; /* Malinis na off-white background */
+  color: #0f1419; /* Madilim na kulay ng text para sa mataas na contrast */
+}
+
+.main-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+}
+
+/* Header */
+.feed-header {
+  font-size: 1.55rem;
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+  color: #0f1419;
+}
+
+/* Post Creation Box */
+.create-post-card {
+  background-color: #ffffff;
+  border: 1px solid #e1e8ed;
+  border-radius: 16px;
+  padding: 1.2rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.post-textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: #0f1419; /* Malinaw at maitim na text habang nagta-type */
+  font-size: 1.05rem;
+  resize: none;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.post-textarea::placeholder {
+  color: #536471; /* Medyo lighter na gray para sa placeholder */
+}
+
+.post-card-footer {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid #eff3f4;
+  padding-top: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.btn-primary {
+  background-color: #1d9bf0;
+  color: #ffffff;
+  border: none;
+  padding: 0.55rem 1.3rem;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: #1a8cd8;
+}
+
+/* Feed Posts Card */
+.post-card {
+  background-color: #ffffff;
+  border: 1px solid #e1e8ed;
+  border-radius: 16px;
+  padding: 1.2rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.author-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #0f1419;
+  margin: 0;
+}
+
+.btn-delete {
+  background: transparent;
+  border: none;
+  color: #f4212e;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.btn-delete:hover {
+  background-color: rgba(244, 33, 46, 0.08);
+}
+
+.post-content {
+  color: #0f1419; /* Malinaw na madilim na kulay ng post text */
+  line-height: 1.5;
+  margin: 0.5rem 0 1rem 0;
+  font-size: 1rem;
+  white-space: pre-line;
+}
+
+.post-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-bottom: 0.75rem;
+}
+
+.btn-like {
+  background: #f7f9fa;
+  border: 1px solid #cfd9de;
+  color: #0f1419;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.btn-like:hover {
+  background: #eff3f4;
+}
+
+.like-count {
+  font-size: 0.85rem;
+  color: #536471;
+  font-weight: 500;
+}
+
+/* Comments Section */
+.comments-section {
+  border-top: 1px solid #eff3f4;
+  padding-top: 0.75rem;
+}
+
+.comments-title {
+  font-size: 0.85rem;
+  color: #536471;
+  margin: 0 0 0.75rem 0;
+  font-weight: 600;
+}
+
+.comment-item {
+  background-color: #f7f9fa;
+  border: 1px solid #eff3f4;
+  padding: 0.55rem 0.85rem;
+  border-radius: 10px;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: #0f1419;
+}
+
+.comment-author {
+  color: #1d9bf0;
+  font-weight: 700;
+}
+
+.comment-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.comment-input {
+  flex: 1;
+  background-color: #ffffff;
+  border: 1px solid #cfd9de;
+  color: #0f1419; /* Malinaw na text sa comment box */
+  padding: 0.45rem 0.85rem;
+  border-radius: 9999px;
+  outline: none;
+  font-size: 0.9rem;
+}
+
+.comment-input::placeholder {
+  color: #536471;
+}
+
+.comment-input:focus {
+  border-color: #1d9bf0;
+}
+
+.btn-reply {
+  background-color: #0f1419;
+  color: #ffffff;
+  border: none;
+  padding: 0.45rem 0.95rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.btn-reply:hover {
+  background-color: #272c30;
+}
