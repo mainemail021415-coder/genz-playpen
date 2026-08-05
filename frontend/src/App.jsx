@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Login from './Login';
+import HomeFeed from './HomeFeed'; // Siguraduhing may HomeFeed component ka o i-import ito
 
 function App() {
   const [token, setToken] = useState(null);
 
-  // Pag-open ng page, i-check kung may umiiral nang token sa localStorage
+  // Pag-load ng page, i-check kung may nakatagong token
   useEffect(() => {
     const savedToken = localStorage.getItem('token');
     if (savedToken) {
@@ -13,7 +14,7 @@ function App() {
   }, []);
 
   const handleLoginSuccess = (newToken) => {
-    setToken(newToken);
+    setToken(newToken); // Kapag na-set ang token, kusa nang mag-iiba ang screen papuntang HomeFeed!
   };
 
   const handleLogout = () => {
@@ -22,20 +23,13 @@ function App() {
   };
 
   return (
-    <div style={{ fontFamily: 'sans-serif', textAlign: 'center', padding: '20px' }}>
+    <div className="app-container">
       {!token ? (
+        // Kung WALANG TOKEN, Login form ang makikita
         <Login onLoginSuccess={handleLoginSuccess} />
       ) : (
-        <div style={{ maxWidth: '500px', margin: '40px auto', padding: '20px', border: '1px solid #4CAF50', borderRadius: '8px' }}>
-          <h1>🎉 Welcome sa GenZ Playpen!</h1>
-          <p>Naka-login ka na nang matagumpay gamit ang JWT Authentication.</p>
-          <button
-            onClick={handleLogout}
-            style={{ padding: '10px 20px', backgroundColor: '#ff4d4d', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', marginTop: '15px' }}
-          >
-            Logout
-          </button>
-        </div>
+        // Kung MAY TOKEN, rekta na sa HomeFeed
+        <HomeFeed token={token} onLogout={handleLogout} />
       )}
     </div>
   );
