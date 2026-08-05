@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 
-function HomeFeed({ onLogout }) {
+function HomeFeed({ user, onLogout }) {
   const [posts, setPosts] = useState([]);
   const [newPostText, setNewPostText] = useState('');
   const [loading, setLoading] = useState(true);
   const [isPosting, setIsPosting] = useState(false);
+
+  // Gamitin ang username ng logged-in user, kung wala ay Anonymous
+  const currentUsername = user?.username || 'Anonymous GenZ';
 
   const API_BASE = 'https://genz-playpen-api.onrender.com';
 
@@ -15,8 +18,6 @@ function HomeFeed({ onLogout }) {
       if (response.ok) {
         const data = await response.json();
         setPosts(data);
-      } else {
-        console.error('Failed to fetch posts');
       }
     } catch (error) {
       console.error('Error fetching posts:', error);
@@ -29,7 +30,7 @@ function HomeFeed({ onLogout }) {
     fetchPosts();
   }, []);
 
-  // 2. MAG-SAVE NG BAGONG POST SA MONGODB
+  // 2. MAG-SAVE NG BAGONG POST SA MONGODB GAMIT ANG TOTOONG USERNAME
   const handleCreatePost = async (e) => {
     e.preventDefault();
     if (!newPostText.trim()) return;
@@ -43,14 +44,13 @@ function HomeFeed({ onLogout }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          author: 'Player_1', // Puwedeng palitan ng nakasave na username sa hinaharap
+          author: currentUsername, // TOTOONG USERNAME NA ANG GAGAMITIN!
           content: newPostText,
         }),
       });
 
       if (response.ok) {
         const savedPost = await response.json();
-        // Idagdag agad ang bagong post sa itaas ng listahan sa UI
         setPosts([savedPost, ...posts]);
         setNewPostText('');
       } else {
@@ -64,7 +64,6 @@ function HomeFeed({ onLogout }) {
     }
   };
 
-  // Local Like Toggle Effect
   const handleLike = (id) => {
     setPosts(
       posts.map((post) => {
@@ -83,7 +82,7 @@ function HomeFeed({ onLogout }) {
 
   return (
     <div style={styles.appWrapper}>
-      {/* 1. NAVIGATION BAR */}
+      {/* 1. NAVIGATION BAR WITH USER PROFILE */}
       <nav style={styles.navbar}>
         <div style={styles.navContainer}>
           <div style={styles.logo}>🎮 GenZ Playpen</div>
@@ -94,10 +93,11 @@ function HomeFeed({ onLogout }) {
           />
           <div style={styles.userMenu}>
             <img
-              src="https://api.dicebear.com/7.x/bottts/svg?seed=Player_1"
+              src={`https://api.dicebear.com/7.x/bottts/svg?seed=${currentUsername}`}
               alt="Avatar"
               style={styles.navAvatar}
             />
+            <span style={styles.profileName}>@{currentUsername}</span>
             <button onClick={onLogout} style={styles.logoutBtn}>
               Logout
             </button>
@@ -105,7 +105,7 @@ function HomeFeed({ onLogout }) {
         </div>
       </nav>
 
-      {/* 2. MAIN LAYOUT (FEED + SIDEBAR) */}
+      {/* 2. MAIN LAYOUT */}
       <div style={styles.mainLayout}>
         {/* MAIN FEED */}
         <div style={styles.feedContainer}>
@@ -114,14 +114,14 @@ function HomeFeed({ onLogout }) {
             <form onSubmit={handleCreatePost}>
               <div style={styles.createPostHeader}>
                 <img
-                  src="https://api.dicebear.com/7.x/bottts/svg?seed=Player_1"
+                  src={`https://api.dicebear.com/7.x/bottts/svg?seed=${currentUsername}`}
                   alt="Avatar"
                   style={styles.avatar}
                 />
                 <textarea
                   value={newPostText}
                   onChange={(e) => setNewPostText(e.target.value)}
-                  placeholder="What's on your mind? Share your gameplay or thoughts..."
+                  placeholder={`What's on your mind, @${currentUsername}? Share your gameplay...`}
                   rows="3"
                   style={styles.postInput}
                 />
@@ -169,7 +169,7 @@ function HomeFeed({ onLogout }) {
                     style={styles.avatar}
                   />
                   <div>
-                    <h4 style={styles.authorName}>{post.author}</h4>
+                    <h4 style={styles.authorName}>@{post.author}</h4>
                     <span style={styles.postTime}>
                       {new Date(post.createdAt).toLocaleString()}
                     </span>
@@ -196,8 +196,20 @@ function HomeFeed({ onLogout }) {
           )}
         </div>
 
-        {/* SIDEBAR */}
+        {/* SIDEBAR WITH USER PROFILE BADGE */}
         <div style={styles.sidebar}>
+          <div style={styles.card}>
+            <div style={{ textAlign: 'center' }}>
+              <img
+                src={`https://api.dicebear.com/7.x/bottts/svg?seed=${currentUsername}`}
+                alt="Profile"
+                style={{ width: '70px', height: '70px', borderRadius: '50%', marginBottom: '10px' }}
+              />
+              <h3 style={{ margin: '0 0 5px 0' }}>@{currentUsername}</h3>
+              <p style={{ fontSize: '13px', color: '#666', margin: 0 }}>GenZ Gamer / Member</p>
+            </div>
+          </div>
+
           <div style={styles.card}>
             <h3 style={styles.sidebarTitle}>🔥 Trending Topics</h3>
             <ul style={styles.trendingList}>
@@ -207,212 +219,41 @@ function HomeFeed({ onLogout }) {
               <li>#GenZPlaypenVibe</li>
             </ul>
           </div>
-
-          <div style={styles.card}>
-            <h3 style={styles.sidebarTitle}>⚡ Quick Links</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <button style={styles.secondaryBtn}>🎮 Play Mini-Games</button>
-              <button style={styles.secondaryBtn}>👥 Find Teammates</button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
   );
 }
 
-// INLINE STYLES OBJECT
 const styles = {
-  appWrapper: {
-    backgroundColor: '#f0f2f5',
-    minHeight: '100vh',
-    fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif',
-    color: '#1c1e21',
-  },
-  navbar: {
-    backgroundColor: '#ffffff',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
-    position: 'sticky',
-    top: 0,
-    zIndex: 100,
-  },
-  navContainer: {
-    maxWidth: '1100px',
-    margin: '0 auto',
-    padding: '10px 20px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  logo: {
-    fontSize: '22px',
-    fontWeight: 'bold',
-    color: '#0070f3',
-    letterSpacing: '-0.5px',
-  },
-  searchBar: {
-    width: '300px',
-    padding: '8px 16px',
-    borderRadius: '20px',
-    border: '1px solid #ddd',
-    backgroundColor: '#f0f2f5',
-    outline: 'none',
-  },
-  userMenu: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-  },
-  navAvatar: {
-    width: '36px',
-    height: '36px',
-    borderRadius: '50%',
-    border: '2px solid #0070f3',
-  },
-  logoutBtn: {
-    padding: '8px 16px',
-    backgroundColor: '#ff4d4f',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-  },
-  mainLayout: {
-    maxWidth: '1100px',
-    margin: '25px auto',
-    padding: '0 20px',
-    display: 'grid',
-    gridTemplateColumns: '1fr 320px',
-    gap: '25px',
-  },
-  feedContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '20px',
-  },
-  card: {
-    backgroundColor: '#ffffff',
-    borderRadius: '12px',
-    padding: '20px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-  },
-  createPostHeader: {
-    display: 'flex',
-    gap: '12px',
-  },
-  avatar: {
-    width: '42px',
-    height: '42px',
-    borderRadius: '50%',
-    backgroundColor: '#eee',
-  },
-  postInput: {
-    width: '100%',
-    border: '1px solid #e4e6eb',
-    borderRadius: '8px',
-    padding: '10px',
-    resize: 'none',
-    fontFamily: 'inherit',
-    outline: 'none',
-    boxSizing: 'border-box',
-  },
-  createPostActions: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: '12px',
-    paddingTop: '12px',
-    borderTop: '1px solid #f0f2f5',
-  },
-  mediaButtons: {
-    display: 'flex',
-    gap: '10px',
-  },
-  iconBtn: {
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    color: '#65676b',
-    fontWeight: '600',
-    fontSize: '13px',
-  },
-  postBtn: {
-    backgroundColor: '#0070f3',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    padding: '8px 24px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-  },
-  postHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    marginBottom: '12px',
-  },
-  authorName: {
-    margin: 0,
-    fontSize: '15px',
-    fontWeight: 'bold',
-  },
-  postTime: {
-    fontSize: '12px',
-    color: '#65676b',
-  },
-  postContent: {
-    fontSize: '15px',
-    lineHeight: '1.5',
-    margin: '0 0 15px 0',
-  },
-  postFooter: {
-    display: 'flex',
-    borderTop: '1px solid #f0f2f5',
-    paddingTop: '10px',
-    gap: '10px',
-  },
-  actionBtn: {
-    flex: 1,
-    padding: '8px',
-    background: 'none',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontWeight: '600',
-    color: '#65676b',
-  },
-  sidebar: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '20px',
-  },
-  sidebarTitle: {
-    margin: '0 0 15px 0',
-    fontSize: '16px',
-    color: '#1c1e21',
-  },
-  trendingList: {
-    listStyle: 'none',
-    padding: 0,
-    margin: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
-    color: '#0070f3',
-    fontWeight: '600',
-    fontSize: '14px',
-  },
-  secondaryBtn: {
-    padding: '10px',
-    backgroundColor: '#e7f3ff',
-    color: '#0070f3',
-    border: 'none',
-    borderRadius: '8px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    textAlign: 'left',
-  },
+  appWrapper: { backgroundColor: '#f0f2f5', minHeight: '100vh', fontFamily: 'Segoe UI, sans-serif', color: '#1c1e21' },
+  navbar: { backgroundColor: '#ffffff', boxShadow: '0 2px 4px rgba(0,0,0,0.08)', position: 'sticky', top: 0, zIndex: 100 },
+  navContainer: { maxWidth: '1100px', margin: '0 auto', padding: '10px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  logo: { fontSize: '22px', fontWeight: 'bold', color: '#0070f3' },
+  searchBar: { width: '250px', padding: '8px 16px', borderRadius: '20px', border: '1px solid #ddd', backgroundColor: '#f0f2f5', outline: 'none' },
+  userMenu: { display: 'flex', alignItems: 'center', gap: '10px' },
+  profileName: { fontWeight: 'bold', fontSize: '14px', color: '#333' },
+  navAvatar: { width: '36px', height: '36px', borderRadius: '50%', border: '2px solid #0070f3' },
+  logoutBtn: { padding: '8px 16px', backgroundColor: '#ff4d4f', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' },
+  mainLayout: { maxWidth: '1100px', margin: '25px auto', padding: '0 20px', display: 'grid', gridTemplateColumns: '1fr 320px', gap: '25px' },
+  feedContainer: { display: 'flex', flexDirection: 'column', gap: '20px' },
+  card: { backgroundColor: '#ffffff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
+  createPostHeader: { display: 'flex', gap: '12px' },
+  avatar: { width: '42px', height: '42px', borderRadius: '50%', backgroundColor: '#eee' },
+  postInput: { width: '100%', border: '1px solid #e4e6eb', borderRadius: '8px', padding: '10px', resize: 'none', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' },
+  createPostActions: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #f0f2f5' },
+  mediaButtons: { display: 'flex', gap: '10px' },
+  iconBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#65676b', fontWeight: '600', fontSize: '13px' },
+  postBtn: { backgroundColor: '#0070f3', color: '#fff', border: 'none', borderRadius: '6px', padding: '8px 24px', fontWeight: 'bold', cursor: 'pointer' },
+  postHeader: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' },
+  authorName: { margin: 0, fontSize: '15px', fontWeight: 'bold' },
+  postTime: { fontSize: '12px', color: '#65676b' },
+  postContent: { fontSize: '15px', lineHeight: '1.5', margin: '0 0 15px 0' },
+  postFooter: { display: 'flex', borderTop: '1px solid #f0f2f5', paddingTop: '10px', gap: '10px' },
+  actionBtn: { flex: 1, padding: '8px', background: 'none', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', color: '#65676b' },
+  sidebar: { display: 'flex', flexDirection: 'column', gap: '20px' },
+  sidebarTitle: { margin: '0 0 15px 0', fontSize: '16px', color: '#1c1e21' },
+  trendingList: { listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px', color: '#0070f3', fontWeight: '600', fontSize: '14px' },
 };
 
 export default HomeFeed;

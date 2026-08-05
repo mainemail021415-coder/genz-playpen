@@ -1,29 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import Login from './pages/Login'; // Kinuha mula sa src/pages/Login.jsx
-import HomeFeed from './pages/HomeFeed'; // Kinuha mula sa src/pages/HomeFeed.jsx (o baguhin ang path kung iba)
+import { jwtDecode } from 'jwt-decode';
+import Login from './pages/Login';
+import HomeFeed from './pages/HomeFeed';
 
 function App() {
   const [token, setToken] = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Pag-open pa lang ng website, i-check kung may token na sa browser (localStorage)
+  // Function para i-decode ang token at makuha ang username
+  const processToken = (jwtToken) => {
+    try {
+      const decoded = jwtDecode(jwtToken);
+      setToken(jwtToken);
+      setUser(decoded); // Naglalaman ng { userId, username }
+    } catch (error) {
+      console.error('Invalid token:', error);
+      localStorage.removeItem('token');
+      setToken(null);
+      setUser(null);
+    }
+  };
+
   useEffect(() => {
     const savedToken = localStorage.getItem('token');
     if (savedToken) {
-      setToken(savedToken);
+      processToken(savedToken);
     }
     setLoading(false);
   }, []);
 
-  // Tawagin ito kapag matagumpay ang pag-login sa Login.jsx
   const handleLoginSuccess = (newToken) => {
-    setToken(newToken);
+    processToken(newToken);
   };
 
-  // Tawagin ito kapag pinindot ang Logout button
   const handleLogout = () => {
     localStorage.removeItem('token');
     setToken(null);
+    setUser(null);
   };
 
   if (loading) {
@@ -37,11 +51,9 @@ function App() {
   return (
     <div className="app-container">
       {!token ? (
-        // Kung WALANG token, ipakita ang Login page
         <Login onLoginSuccess={handleLoginSuccess} />
       ) : (
-        // Kung MAY token, rekta na sa HomeFeed page
-        <HomeFeed onLogout={handleLogout} />
+        <HomeFeed user={user} onLogout={handleLogout} />
       )}
     </div>
   );
