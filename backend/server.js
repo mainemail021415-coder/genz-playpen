@@ -6,28 +6,39 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const http = require('http');
+const { Server } = require('socket.io');
 require('dotenv').config();
 
 const app = express();
+const server = http.createServer(app);
 
-// MIDDLEWARES
+// 1. SOCKET.IO SETUP WITH CORS
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE']
+  }
+});
+
+// 2. MIDDLEWARES
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE'], allowedHeaders: ['Content-Type', 'Authorization'] }));
 app.use(express.json());
 
-// MONGODB CONNECTION
+// 3. MONGODB CONNECTION
 const MONGO_URI = process.env.MONGO_URI || 'YOUR_MONGODB_URI';
 mongoose.connect(MONGO_URI)
   .then(() => console.log('✅ Connected to MongoDB Atlas'))
   .catch((err) => console.error('❌ MongoDB Connection Error:', err));
 
-// CLOUDINARY CONFIGURATION
+// 4. CLOUDINARY CONFIGURATION
 cloudinary.config({
   cloud_name: process.env.CLOUD_NAME,
   api_key: process.env.CLOUD_API_KEY,
   api_secret: process.env.CLOUD_API_SECRET,
 });
 
-// MULTER CLOUDINARY STORAGE SETUP
+// 5. MULTER CLOUDINARY STORAGE SETUP
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -38,7 +49,7 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({ storage: storage });
 
-// SCHEMAS & MODELS
+// 6. SCHEMAS & MODELS
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
@@ -49,7 +60,7 @@ const User = mongoose.model('User', userSchema);
 const postSchema = new mongoose.Schema({
   author: { type: String, required: true },
   content: { type: String },
-  imageUrl: { type: String, default: null }, // 📸 DITO MAI-SAVE ANG UPLOADED IMAGE URL
+  imageUrl: { type: String, default: null },
   likes: { type: [String], default: [] },
   comments: [
     {
@@ -62,10 +73,25 @@ const postSchema = new mongoose.Schema({
 });
 const Post = mongoose.model('Post', postSchema);
 
-// API ROUTES
+// 7. SOCKET.IO LISTENERS (REAL-TIME LIVE CHAT)
+io.on('connection', (socket) => {
+  console.log(`⚡ User Connected: ${socket.id}`);
+
+  socket.on('send_message', (data) => {
+    io.emit('receive_message', data);
+  });
+
+  socket.on('disconnect', () => {
+    console.log(`❌ User Disconnected: ${socket.id}`);
+  });
+});
+
+// 8. API ROUTES
+
+// Root Check
 app.get('/', (req, res) => res.send('🎮 GenZ Playpen API is running!'));
 
-// AUTH ROUTES
+// AUTH: REGISTER
 app.post('/api/register', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -78,10 +104,11 @@ app.post('/api/register', async (req, res) => {
     await newUser.save();
     res.status(201).json({ message: 'User registered successfully!' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error.' });
+    res.status(500).json({ message: 'Server error sa registration.' });
   }
 });
 
+// AUTH: LOGIN
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -93,11 +120,11 @@ app.post('/api/login', async (req, res) => {
     const token = jwt.sign({ userId: user._id, username: user.username }, secretKey, { expiresIn: '1d' });
     res.status(200).json({ message: 'Login successful!', token, user: { id: user._id, username: user.username } });
   } catch (error) {
-    res.status(500).json({ message: 'Server error.' });
+    res.status(500).json({ message: 'Server error sa login.' });
   }
 });
 
-// POSTS ROUTES
+// POSTS: GET ALL
 app.get('/api/posts', async (req, res) => {
   try {
     const posts = await Post.find().sort({ createdAt: -1 });
@@ -107,11 +134,11 @@ app.get('/api/posts', async (req, res) => {
   }
 });
 
-// 📸 CREATE POST WITH FILE UPLOAD SUPPORT
+// POSTS: CREATE (WITH IMAGE UPLOAD SUPPORT)
 app.post('/api/posts', upload.single('image'), async (req, res) => {
   try {
     const { author, content } = req.body;
-    const imageUrl = req.file ? req.file.path : null; // Link galing sa Cloudinary
+    const imageUrl = req.file ? req.file.path : null;
 
     if (!content && !imageUrl) {
       return res.status(400).json({ message: 'Kailangan ng text o picture para makapag-post.' });
@@ -127,11 +154,11 @@ app.post('/api/posts', upload.single('image'), async (req, res) => {
     res.status(201).json(newPost);
   } catch (error) {
     console.error('Upload Error:', error);
-    res.status(500).json({ message: 'Error creating post with image.' });
+    res.status(500).json({ message: 'Error creating post.' });
   }
 });
 
-// LIKE / UNLIKE
+// POSTS: LIKE / UNLIKE
 app.put('/api/posts/:id/like', async (req, res) => {
   try {
     const { username } = req.body;
@@ -151,7 +178,7 @@ app.put('/api/posts/:id/like', async (req, res) => {
   }
 });
 
-// COMMENT
+// POSTS: COMMENT
 app.post('/api/posts/:id/comment', async (req, res) => {
   try {
     const { author, text } = req.body;
@@ -166,7 +193,7 @@ app.post('/api/posts/:id/comment', async (req, res) => {
   }
 });
 
-// DELETE
+// POSTS: DELETE
 app.delete('/api/posts/:id', async (req, res) => {
   try {
     const { username } = req.body;
@@ -184,5 +211,6 @@ app.delete('/api/posts/:id', async (req, res) => {
   }
 });
 
+// 9. LISTEN ON HTTP SERVER
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`🚀 Server with Socket.io listening on port ${PORT}`));
