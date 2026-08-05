@@ -53,6 +53,8 @@ const upload = multer({ storage: storage });
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
+  following: { type: [String], default: [] },
+  followers: { type: [String], default: [] },
   createdAt: { type: Date, default: Date.now }
 });
 const User = mongoose.model('User', userSchema);
@@ -73,7 +75,33 @@ const postSchema = new mongoose.Schema({
 });
 const Post = mongoose.model('Post', postSchema);
 
-// 7. SOCKET.IO LISTENERS (REAL-TIME LIVE CHAT)
+// 🔔 NOTIFICATION SCHEMA
+const notificationSchema = new mongoose.Schema({
+  recipient: { type: String, required: true }, // Sino ang makakatanggap
+  sender: { type: String, required: true },    // Sino ang gumawa ng aksyon
+  type: { type: String, enum: ['follow', 'post_comment', 'profile_comment', 'like'], required: true },
+  message: { type: String, required: true },
+  read: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now }
+});
+const Notification = mongoose.model('Notification', notificationSchema);
+
+// Helper function para sa Real-Time Notification via Socket.io
+const createAndSendNotification = async ({ recipient, sender, type, message }) => {
+  if (recipient === sender) return; // Huwag i-notify ang sarili
+
+  try {
+    const notif = new Notification({ recipient, sender, type, message });
+    await notif.save();
+
+    // I-broadcast via socket sa partikular na user o sa lahat
+    io.emit(`notification_${recipient}`, notif);
+  } catch (err) {
+    console.error('Notification creation error:', err);
+  }
+};
+
+// 7. SOCKET.IO LISTENERS (REAL-TIME CHAT & USER ROOMS)
 io.on('connection', (socket) => {
   console.log(`⚡ User Connected: ${socket.id}`);
 
@@ -124,6 +152,89 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+// 🔔 NOTIFICATIONS ROUTES
+app.get('/api/notifications/:username', async (req, res) => {
+  try {
+    const notifications = await Notification.find({ recipient: req.params.username }).sort({ createdAt: -1 });
+    res.status(200).json(notifications);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching notifications.' });
+  }
+});
+
+app.put('/api/notifications/read/:username', async (req, res) => {
+  try {
+    await Notification.updateMany({ recipient: req.params.username, read: false }, { read: true });
+    res.status(200).json({ message: 'Notifications marked as read.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating notifications.' });
+  }
+});
+
+// 👥 FOLLOW USER ROUTE (WITH NOTIFICATION)
+app.post('/api/users/:username/follow', async (req, res) => {
+  try {
+    const targetUsername = req.params.username;
+    const { currentUsername } = req.body;
+
+    if (targetUsername === currentUsername) {
+      return res.status(400).json({ message: 'Hindi mo pwedeng i-follow ang sarili mo.' });
+    }
+
+    const targetUser = await User.findOne({ username: targetUsername });
+    const currentUser = await User.findOne({ username: currentUsername });
+
+    if (!targetUser || !currentUser) return res.status(404).json({ message: 'User not found.' });
+
+    const isFollowing = currentUser.following.includes(targetUsername);
+
+    if (isFollowing) {
+      // Unfollow
+      currentUser.following = currentUser.following.filter(u => u !== targetUsername);
+      targetUser.followers = targetUser.followers.filter(u => u !== currentUsername);
+    } else {
+      // Follow
+      currentUser.following.push(targetUsername);
+      targetUser.followers.push(currentUsername);
+
+      // Trigger Follow Notification
+      await createAndSendNotification({
+        recipient: targetUsername,
+        sender: currentUsername,
+        type: 'follow',
+        message: 'started following you.'
+      });
+    }
+
+    await currentUser.save();
+    await targetUser.save();
+
+    res.status(200).json({ isFollowing: !isFollowing });
+  } catch (error) {
+    res.status(500).json({ message: 'Error processing follow.' });
+  }
+});
+
+// 💬 PROFILE COMMENT ROUTE (WITH NOTIFICATION)
+app.post('/api/users/:username/comment', async (req, res) => {
+  try {
+    const targetUsername = req.params.username;
+    const { author, text } = req.body;
+
+    // Trigger Profile Comment Notification
+    await createAndSendNotification({
+      recipient: targetUsername,
+      sender: author,
+      type: 'profile_comment',
+      message: `commented on your profile: "${text.substring(0, 20)}..."`
+    });
+
+    res.status(200).json({ message: 'Profile comment added successfully!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error adding profile comment.' });
+  }
+});
+
 // POSTS: GET ALL
 app.get('/api/posts', async (req, res) => {
   try {
@@ -134,7 +245,7 @@ app.get('/api/posts', async (req, res) => {
   }
 });
 
-// POSTS: CREATE (WITH IMAGE UPLOAD SUPPORT)
+// POSTS: CREATE
 app.post('/api/posts', upload.single('image'), async (req, res) => {
   try {
     const { author, content } = req.body;
@@ -158,7 +269,7 @@ app.post('/api/posts', upload.single('image'), async (req, res) => {
   }
 });
 
-// POSTS: LIKE / UNLIKE
+// POSTS: LIKE / UNLIKE (WITH NOTIFICATION)
 app.put('/api/posts/:id/like', async (req, res) => {
   try {
     const { username } = req.body;
@@ -168,6 +279,14 @@ app.put('/api/posts/:id/like', async (req, res) => {
     const index = post.likes.indexOf(username);
     if (index === -1) {
       post.likes.push(username);
+
+      // Trigger Like Notification
+      await createAndSendNotification({
+        recipient: post.author,
+        sender: username,
+        type: 'like',
+        message: 'liked your post.'
+      });
     } else {
       post.likes.splice(index, 1);
     }
@@ -178,7 +297,7 @@ app.put('/api/posts/:id/like', async (req, res) => {
   }
 });
 
-// POSTS: COMMENT
+// POSTS: COMMENT (WITH NOTIFICATION)
 app.post('/api/posts/:id/comment', async (req, res) => {
   try {
     const { author, text } = req.body;
@@ -187,6 +306,15 @@ app.post('/api/posts/:id/comment', async (req, res) => {
 
     post.comments.push({ author, text });
     await post.save();
+
+    // Trigger Post Comment Notification
+    await createAndSendNotification({
+      recipient: post.author,
+      sender: author,
+      type: 'post_comment',
+      message: `commented on your post: "${text.substring(0, 20)}..."`
+    });
+
     res.status(201).json(post);
   } catch (error) {
     res.status(500).json({ message: 'Error commenting.' });

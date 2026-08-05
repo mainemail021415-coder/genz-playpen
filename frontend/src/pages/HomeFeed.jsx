@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 
-// Kumonekta sa Socket.io Backend Server
 const API_BASE = 'https://genz-playpen-api.onrender.com';
 const socket = io(API_BASE);
 
@@ -28,27 +27,39 @@ function HomeFeed({ user, onLogout }) {
   const [currentMessage, setCurrentMessage] = useState('');
   const chatBottomRef = useRef(null);
 
-  // --- SAMPLE NOTIFICATIONS ---
-  const [notifications, setNotifications] = useState([
-    { id: 1, user: 'cyber_kat', action: 'liked your post.', time: '5m ago', read: false },
-    { id: 2, user: 'pixel_boy', action: 'commented on your photo.', time: '12m ago', read: false },
-  ]);
+  // --- NOTIFICATIONS STATE ---
+  const [notifications, setNotifications] = useState([]);
 
   const unreadNotifCount = notifications.filter((n) => !n.read).length;
 
-  // --- TIME FORMATTER ---
+  // --- DYNAMIC TIME AGO FORMATTER (WALANG APEKTO SA KASALUKUYANG ORAS) ---
   const formatTimeAgo = (dateString) => {
+    if (!dateString) return 'Just now';
     const now = new Date();
     const past = new Date(dateString);
     const diffInSeconds = Math.floor((now - past) / 1000);
 
-    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 10) return 'Just now';
+    if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
     return `${Math.floor(diffInSeconds / 86400)}d ago`;
   };
 
-  // --- FETCH ALL POSTS ---
+  // --- FETCH NOTIFICATIONS FROM BACKEND ---
+  const fetchNotifications = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/notifications/${currentUsername}`);
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(data);
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
+
+  // --- FETCH POSTS ---
   const fetchPosts = async () => {
     try {
       const response = await fetch(`${API_BASE}/api/posts`);
@@ -65,25 +76,30 @@ function HomeFeed({ user, onLogout }) {
 
   useEffect(() => {
     fetchPosts();
+    fetchNotifications();
 
     // Socket.io Listener para sa Real-Time Messages
     socket.on('receive_message', (data) => {
       setChatMessages((prev) => [...prev, data]);
     });
 
+    // 🔔 REAL-TIME SOCKET LISTENER PARA SA NOTIFICATIONS NG USER THIS SECOND
+    socket.on(`notification_${currentUsername}`, (newNotif) => {
+      setNotifications((prev) => [newNotif, ...prev]);
+    });
+
     return () => {
       socket.off('receive_message');
+      socket.off(`notification_${currentUsername}`);
     };
-  }, []);
+  }, [currentUsername]);
 
-  // Auto-scroll pababa kapag may bagong chat
   useEffect(() => {
     if (chatBottomRef.current) {
       chatBottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [chatMessages]);
 
-  // --- HANDLERS FOR IMAGE UPLOAD ---
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -97,7 +113,6 @@ function HomeFeed({ user, onLogout }) {
     setImagePreview(null);
   };
 
-  // --- CREATE POST ---
   const handleCreatePost = async (e) => {
     e.preventDefault();
     if (!newPostText.trim() && !selectedImage) return;
@@ -133,7 +148,6 @@ function HomeFeed({ user, onLogout }) {
     }
   };
 
-  // --- LIKE / UNLIKE POST ---
   const handleLike = async (postId) => {
     try {
       const response = await fetch(`${API_BASE}/api/posts/${postId}/like`, {
@@ -151,7 +165,6 @@ function HomeFeed({ user, onLogout }) {
     }
   };
 
-  // --- COMMENT ON POST ---
   const handleAddComment = async (postId) => {
     if (!commentInput.trim()) return;
 
@@ -172,7 +185,6 @@ function HomeFeed({ user, onLogout }) {
     }
   };
 
-  // --- DELETE POST ---
   const handleDeletePost = async (postId) => {
     if (!window.confirm('Sigurado ka bang gusto mo itong burahin?')) return;
 
@@ -191,7 +203,6 @@ function HomeFeed({ user, onLogout }) {
     }
   };
 
-  // --- SEND CHAT MESSAGE VIA SOCKET.IO ---
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (!currentMessage.trim()) return;
@@ -206,19 +217,27 @@ function HomeFeed({ user, onLogout }) {
     setCurrentMessage('');
   };
 
-  // --- TOGGLE MODALS ---
   const toggleChatsModal = () => {
     setShowChatsModal(!showChatsModal);
     setShowNotifModal(false);
     setShowProfileModal(false);
   };
 
-  const toggleNotifModal = () => {
+  // MARK NOTIFICATIONS AS READ WHEN OPENED
+  const toggleNotifModal = async () => {
     setShowNotifModal(!showNotifModal);
     setShowChatsModal(false);
     setShowProfileModal(false);
-    if (!showNotifModal) {
-      setNotifications(notifications.map((n) => ({ ...n, read: true })));
+
+    if (!showNotifModal && unreadNotifCount > 0) {
+      try {
+        await fetch(`${API_BASE}/api/notifications/read/${currentUsername}`, {
+          method: 'PUT',
+        });
+        setNotifications(notifications.map((n) => ({ ...n, read: true })));
+      } catch (error) {
+        console.error('Error marking notifications read:', error);
+      }
     }
   };
 
@@ -251,26 +270,39 @@ function HomeFeed({ user, onLogout }) {
                 {unreadNotifCount > 0 && <span style={styles.badge}>{unreadNotifCount}</span>}
               </button>
 
-              {/* NOTIF DROPDOWN */}
+              {/* NOTIFICATIONS DROPDOWN MODAL */}
               {showNotifModal && (
                 <div style={styles.dropdownModal}>
                   <h3 style={styles.modalTitle}>🔔 Notifications</h3>
                   <hr style={styles.divider} />
-                  {notifications.map((notif) => (
-                    <div key={notif.id} style={styles.notifItem}>
-                      <img
-                        src={`https://api.dicebear.com/7.x/bottts/svg?seed=${notif.user}`}
-                        alt="Avatar"
-                        style={styles.modalAvatar}
-                      />
-                      <div>
-                        <p style={{ margin: 0, fontSize: '13px' }}>
-                          <b>@{notif.user}</b> {notif.action}
-                        </p>
-                        <span style={styles.timeText}>{notif.time}</span>
+
+                  {notifications.length === 0 ? (
+                    <p style={{ textAlign: 'center', color: '#888', fontSize: '13px', margin: '15px 0' }}>
+                      No notifications yet.
+                    </p>
+                  ) : (
+                    notifications.map((notif) => (
+                      <div
+                        key={notif._id}
+                        style={{
+                          ...styles.notifItem,
+                          backgroundColor: notif.read ? '#fff' : '#f0f7ff',
+                        }}
+                      >
+                        <img
+                          src={`https://api.dicebear.com/7.x/bottts/svg?seed=${notif.sender}`}
+                          alt="Avatar"
+                          style={styles.modalAvatar}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <p style={{ margin: 0, fontSize: '13px' }}>
+                            <b>@{notif.sender}</b> {notif.message}
+                          </p>
+                          <span style={styles.timeText}>{formatTimeAgo(notif.createdAt)}</span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               )}
             </div>
@@ -480,6 +512,9 @@ function HomeFeed({ user, onLogout }) {
                       {post.comments?.map((c, i) => (
                         <div key={i} style={styles.commentBox}>
                           <b>@{c.author}: </b> {c.text}
+                          <div style={{ fontSize: '10px', color: '#888', marginTop: '2px' }}>
+                            {formatTimeAgo(c.createdAt)}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -521,14 +556,14 @@ const styles = {
   profileBtn: { display: 'flex', alignItems: 'center', gap: '8px', border: 'none', background: '#e4e6eb', padding: '4px 12px 4px 4px', borderRadius: '20px', cursor: 'pointer' },
   profileName: { fontWeight: 'bold', fontSize: '14px' },
   navAvatar: { width: '32px', height: '32px', borderRadius: '50%' },
-  dropdownModal: { position: 'absolute', top: '50px', right: '0', backgroundColor: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', borderRadius: '10px', width: '280px', padding: '12px', zIndex: 1000 },
+  dropdownModal: { position: 'absolute', top: '50px', right: '0', backgroundColor: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', borderRadius: '10px', width: '300px', maxHeight: '400px', overflowY: 'auto', padding: '12px', zIndex: 1000 },
   modalTitle: { margin: '0 0 8px 0', fontSize: '16px' },
   divider: { border: 'none', borderTop: '1px solid #eee', margin: '8px 0' },
   modalAvatar: { width: '36px', height: '36px', borderRadius: '50%' },
-  notifItem: { display: 'flex', gap: '10px', padding: '8px 0', borderBottom: '1px solid #f9f9f9', alignItems: 'center' },
+  notifItem: { display: 'flex', gap: '10px', padding: '8px', borderRadius: '6px', marginBottom: '4px', alignItems: 'center' },
   timeText: { fontSize: '11px', color: '#888' },
   fullLogoutBtn: { width: '100%', backgroundColor: '#ff4d4f', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', marginTop: '5px' },
-  
+
   // CHAT BOX FLOATING MODAL
   chatBoxModal: { position: 'fixed', bottom: '20px', right: '20px', width: '320px', height: '420px', backgroundColor: '#fff', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', zIndex: 1000 },
   chatHeader: { padding: '12px 15px', backgroundColor: '#0070f3', color: '#fff', borderRadius: '12px 12px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
