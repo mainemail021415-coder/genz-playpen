@@ -5,13 +5,25 @@ function HomeFeed({ user, onLogout }) {
   const [newPostText, setNewPostText] = useState('');
   const [loading, setLoading] = useState(true);
   const [isPosting, setIsPosting] = useState(false);
+  const [activeCommentPostId, setActiveCommentPostId] = useState(null);
+  const [commentInput, setCommentInput] = useState('');
 
-  // Gamitin ang username ng logged-in user, kung wala ay Anonymous
   const currentUsername = user?.username || 'Anonymous GenZ';
-
   const API_BASE = 'https://genz-playpen-api.onrender.com';
 
-  // 1. KUNIN LAHAT NG POSTS MULA SA MONGODB
+  // Helper Function para sa Relative Time (e.g., "5 mins ago", "Just now")
+  const formatTimeAgo = (dateString) => {
+    const now = new Date();
+    const past = new Date(dateString);
+    const diffInSeconds = Math.floor((now - past) / 1000);
+
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  };
+
+  // 1. FETCH ALL POSTS
   const fetchPosts = async () => {
     try {
       const response = await fetch(`${API_BASE}/api/posts`);
@@ -30,67 +42,97 @@ function HomeFeed({ user, onLogout }) {
     fetchPosts();
   }, []);
 
-  // 2. MAG-SAVE NG BAGONG POST SA MONGODB GAMIT ANG TOTOONG USERNAME
+  // 2. CREATE POST
   const handleCreatePost = async (e) => {
     e.preventDefault();
     if (!newPostText.trim()) return;
 
     setIsPosting(true);
-
     try {
       const response = await fetch(`${API_BASE}/api/posts`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          author: currentUsername, // TOTOONG USERNAME NA ANG GAGAMITIN!
-          content: newPostText,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ author: currentUsername, content: newPostText }),
       });
 
       if (response.ok) {
         const savedPost = await response.json();
         setPosts([savedPost, ...posts]);
         setNewPostText('');
-      } else {
-        alert('❌ Nabigong i-share ang post. Paki-subok ulit.');
       }
     } catch (error) {
-      console.error('Error creating post:', error);
-      alert('❌ Server error. Paki-check ang internet connection.');
+      alert('❌ Error creating post');
     } finally {
       setIsPosting(false);
     }
   };
 
-  const handleLike = (id) => {
-    setPosts(
-      posts.map((post) => {
-        if (post._id === id) {
-          const isLiked = post.liked;
-          return {
-            ...post,
-            likes: isLiked ? post.likes - 1 : post.likes + 1,
-            liked: !isLiked,
-          };
-        }
-        return post;
-      })
-    );
+  // 3. REAL-TIME LIKE / UNLIKE
+  const handleLike = async (postId) => {
+    try {
+      const response = await fetch(`${API_BASE}/api/posts/${postId}/like`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: currentUsername }),
+      });
+
+      if (response.ok) {
+        const updatedPost = await response.json();
+        setPosts(posts.map((p) => (p._id === postId ? updatedPost : p)));
+      }
+    } catch (error) {
+      console.error('Like error:', error);
+    }
+  };
+
+  // 4. ADD COMMENT
+  const handleAddComment = async (postId) => {
+    if (!commentInput.trim()) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/posts/${postId}/comment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ author: currentUsername, text: commentInput }),
+      });
+
+      if (response.ok) {
+        const updatedPost = await response.json();
+        setPosts(posts.map((p) => (p._id === postId ? updatedPost : p)));
+        setCommentInput('');
+      }
+    } catch (error) {
+      console.error('Comment error:', error);
+    }
+  };
+
+  // 5. DELETE POST
+  const handleDeletePost = async (postId) => {
+    if (!window.confirm('Sigurado ka bang gusto mo itong burahin?')) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/posts/${postId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: currentUsername }),
+      });
+
+      if (response.ok) {
+        setPosts(posts.filter((p) => p._id !== postId));
+      } else {
+        alert('❌ Hindi mo mabubura ang post na ito.');
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+    }
   };
 
   return (
     <div style={styles.appWrapper}>
-      {/* 1. NAVIGATION BAR WITH USER PROFILE */}
+      {/* NAVBAR */}
       <nav style={styles.navbar}>
         <div style={styles.navContainer}>
           <div style={styles.logo}>🎮 GenZ Playpen</div>
-          <input
-            type="text"
-            placeholder="Search games, posts, or friends..."
-            style={styles.searchBar}
-          />
           <div style={styles.userMenu}>
             <img
               src={`https://api.dicebear.com/7.x/bottts/svg?seed=${currentUsername}`}
@@ -98,16 +140,13 @@ function HomeFeed({ user, onLogout }) {
               style={styles.navAvatar}
             />
             <span style={styles.profileName}>@{currentUsername}</span>
-            <button onClick={onLogout} style={styles.logoutBtn}>
-              Logout
-            </button>
+            <button onClick={onLogout} style={styles.logoutBtn}>Logout</button>
           </div>
         </div>
       </nav>
 
-      {/* 2. MAIN LAYOUT */}
+      {/* MAIN CONTENT */}
       <div style={styles.mainLayout}>
-        {/* MAIN FEED */}
         <div style={styles.feedContainer}>
           {/* CREATE POST CARD */}
           <div style={styles.card}>
@@ -121,103 +160,106 @@ function HomeFeed({ user, onLogout }) {
                 <textarea
                   value={newPostText}
                   onChange={(e) => setNewPostText(e.target.value)}
-                  placeholder={`What's on your mind, @${currentUsername}? Share your gameplay...`}
+                  placeholder={`What's on your mind, @${currentUsername}?`}
                   rows="3"
                   style={styles.postInput}
                 />
               </div>
               <div style={styles.createPostActions}>
-                <div style={styles.mediaButtons}>
-                  <button type="button" style={styles.iconBtn}>📸 Photo</button>
-                  <button type="button" style={styles.iconBtn}>🎥 Video</button>
-                  <button type="button" style={styles.iconBtn}>🔥 Vibe</button>
-                </div>
-                <button
-                  type="submit"
-                  disabled={isPosting}
-                  style={{
-                    ...styles.postBtn,
-                    backgroundColor: isPosting ? '#93c5fd' : '#0070f3',
-                  }}
-                >
+                <button type="submit" disabled={isPosting} style={styles.postBtn}>
                   {isPosting ? 'Posting...' : 'Post'}
                 </button>
               </div>
             </form>
           </div>
 
-          {/* POSTS LIST FROM MONGODB */}
+          {/* POSTS LIST */}
           {loading ? (
-            <div style={styles.card}>
-              <p style={{ textAlign: 'center', color: '#666', margin: 0 }}>
-                ⏳ Loading posts from MongoDB...
-              </p>
-            </div>
-          ) : posts.length === 0 ? (
-            <div style={styles.card}>
-              <p style={{ textAlign: 'center', color: '#666', margin: 0 }}>
-                🎉 Wala pang posts! Maging una sa pag-post sa GenZ Playpen.
-              </p>
-            </div>
-          ) : (
-            posts.map((post) => (
+            <p style={{ textAlign: 'center' }}>⏳ Loading posts...</p>
+          ) : posts.map((post) => {
+            const isLiked = post.likes?.includes(currentUsername);
+            const isAuthor = post.author === currentUsername;
+
+            return (
               <div key={post._id} style={styles.card}>
                 <div style={styles.postHeader}>
                   <img
                     src={`https://api.dicebear.com/7.x/bottts/svg?seed=${post.author}`}
-                    alt={post.author}
+                    alt="Avatar"
                     style={styles.avatar}
                   />
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <h4 style={styles.authorName}>@{post.author}</h4>
-                    <span style={styles.postTime}>
-                      {new Date(post.createdAt).toLocaleString()}
-                    </span>
+                    <span style={styles.postTime}>{formatTimeAgo(post.createdAt)}</span>
                   </div>
+
+                  {/* DELETE BUTTON (Lalabas lang sa sarili mong post) */}
+                  {isAuthor && (
+                    <button onClick={() => handleDeletePost(post._id)} style={styles.deleteBtn}>
+                      🗑️
+                    </button>
+                  )}
                 </div>
 
                 <p style={styles.postContent}>{post.content}</p>
 
+                {/* POST ACTIONS (LIKE & COMMENT) */}
                 <div style={styles.postFooter}>
                   <button
                     onClick={() => handleLike(post._id)}
-                    style={{
-                      ...styles.actionBtn,
-                      color: post.liked ? '#e74c3c' : '#65676b',
-                    }}
+                    style={{ ...styles.actionBtn, color: isLiked ? '#e74c3c' : '#65676b' }}
                   >
-                    {post.liked ? '❤️' : '🤍'} {post.likes || 0} Likes
+                    {isLiked ? '❤️' : '🤍'} {post.likes?.length || 0} Likes
                   </button>
-                  <button style={styles.actionBtn}>💬 Comment</button>
-                  <button style={styles.actionBtn}>🔗 Share</button>
+                  <button
+                    onClick={() => setActiveCommentPostId(activeCommentPostId === post._id ? null : post._id)}
+                    style={styles.actionBtn}
+                  >
+                    💬 {post.comments?.length || 0} Comments
+                  </button>
                 </div>
+
+                {/* COMMENTS SECTION */}
+                {activeCommentPostId === post._id && (
+                  <div style={styles.commentSection}>
+                    {/* COMMENT INPUT */}
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                      <input
+                        type="text"
+                        placeholder="Write a comment..."
+                        value={commentInput}
+                        onChange={(e) => setCommentInput(e.target.value)}
+                        style={styles.commentInput}
+                      />
+                      <button onClick={() => handleAddComment(post._id)} style={styles.sendCommentBtn}>
+                        Send
+                      </button>
+                    </div>
+
+                    {/* COMMENT LIST */}
+                    {post.comments?.map((c, i) => (
+                      <div key={i} style={styles.commentBox}>
+                        <b>@{c.author}: </b> {c.text}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            ))
-          )}
+            );
+          })}
         </div>
 
-        {/* SIDEBAR WITH USER PROFILE BADGE */}
+        {/* SIDEBAR */}
         <div style={styles.sidebar}>
           <div style={styles.card}>
             <div style={{ textAlign: 'center' }}>
               <img
                 src={`https://api.dicebear.com/7.x/bottts/svg?seed=${currentUsername}`}
                 alt="Profile"
-                style={{ width: '70px', height: '70px', borderRadius: '50%', marginBottom: '10px' }}
+                style={{ width: '60px', height: '60px', borderRadius: '50%' }}
               />
-              <h3 style={{ margin: '0 0 5px 0' }}>@{currentUsername}</h3>
-              <p style={{ fontSize: '13px', color: '#666', margin: 0 }}>GenZ Gamer / Member</p>
+              <h3 style={{ margin: '10px 0 0 0' }}>@{currentUsername}</h3>
             </div>
-          </div>
-
-          <div style={styles.card}>
-            <h3 style={styles.sidebarTitle}>🔥 Trending Topics</h3>
-            <ul style={styles.trendingList}>
-              <li>#ValorantTournament</li>
-              <li>#ReactJS2026</li>
-              <li>#MongoDBAtlas</li>
-              <li>#GenZPlaypenVibe</li>
-            </ul>
           </div>
         </div>
       </div>
@@ -226,34 +268,34 @@ function HomeFeed({ user, onLogout }) {
 }
 
 const styles = {
-  appWrapper: { backgroundColor: '#f0f2f5', minHeight: '100vh', fontFamily: 'Segoe UI, sans-serif', color: '#1c1e21' },
-  navbar: { backgroundColor: '#ffffff', boxShadow: '0 2px 4px rgba(0,0,0,0.08)', position: 'sticky', top: 0, zIndex: 100 },
-  navContainer: { maxWidth: '1100px', margin: '0 auto', padding: '10px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  logo: { fontSize: '22px', fontWeight: 'bold', color: '#0070f3' },
-  searchBar: { width: '250px', padding: '8px 16px', borderRadius: '20px', border: '1px solid #ddd', backgroundColor: '#f0f2f5', outline: 'none' },
+  appWrapper: { backgroundColor: '#f0f2f5', minHeight: '100vh', fontFamily: 'sans-serif' },
+  navbar: { backgroundColor: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', padding: '10px 0' },
+  navContainer: { maxWidth: '1000px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', padding: '0 20px', alignItems: 'center' },
+  logo: { fontSize: '20px', fontWeight: 'bold', color: '#0070f3' },
   userMenu: { display: 'flex', alignItems: 'center', gap: '10px' },
-  profileName: { fontWeight: 'bold', fontSize: '14px', color: '#333' },
-  navAvatar: { width: '36px', height: '36px', borderRadius: '50%', border: '2px solid #0070f3' },
-  logoutBtn: { padding: '8px 16px', backgroundColor: '#ff4d4f', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' },
-  mainLayout: { maxWidth: '1100px', margin: '25px auto', padding: '0 20px', display: 'grid', gridTemplateColumns: '1fr 320px', gap: '25px' },
-  feedContainer: { display: 'flex', flexDirection: 'column', gap: '20px' },
-  card: { backgroundColor: '#ffffff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
-  createPostHeader: { display: 'flex', gap: '12px' },
-  avatar: { width: '42px', height: '42px', borderRadius: '50%', backgroundColor: '#eee' },
-  postInput: { width: '100%', border: '1px solid #e4e6eb', borderRadius: '8px', padding: '10px', resize: 'none', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' },
-  createPostActions: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #f0f2f5' },
-  mediaButtons: { display: 'flex', gap: '10px' },
-  iconBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#65676b', fontWeight: '600', fontSize: '13px' },
-  postBtn: { backgroundColor: '#0070f3', color: '#fff', border: 'none', borderRadius: '6px', padding: '8px 24px', fontWeight: 'bold', cursor: 'pointer' },
-  postHeader: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' },
-  authorName: { margin: 0, fontSize: '15px', fontWeight: 'bold' },
-  postTime: { fontSize: '12px', color: '#65676b' },
-  postContent: { fontSize: '15px', lineHeight: '1.5', margin: '0 0 15px 0' },
-  postFooter: { display: 'flex', borderTop: '1px solid #f0f2f5', paddingTop: '10px', gap: '10px' },
-  actionBtn: { flex: 1, padding: '8px', background: 'none', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', color: '#65676b' },
-  sidebar: { display: 'flex', flexDirection: 'column', gap: '20px' },
-  sidebarTitle: { margin: '0 0 15px 0', fontSize: '16px', color: '#1c1e21' },
-  trendingList: { listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px', color: '#0070f3', fontWeight: '600', fontSize: '14px' },
+  profileName: { fontWeight: 'bold' },
+  navAvatar: { width: '32px', height: '32px', borderRadius: '50%' },
+  logoutBtn: { backgroundColor: '#ff4d4f', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '5px', cursor: 'pointer' },
+  mainLayout: { maxWidth: '1000px', margin: '20px auto', padding: '0 20px', display: 'grid', gridTemplateColumns: '1fr 280px', gap: '20px' },
+  feedContainer: { display: 'flex', flexDirection: 'column', gap: '15px' },
+  card: { backgroundColor: '#fff', borderRadius: '10px', padding: '18px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
+  createPostHeader: { display: 'flex', gap: '10px' },
+  avatar: { width: '40px', height: '40px', borderRadius: '50%' },
+  postInput: { width: '100%', border: '1px solid #ddd', borderRadius: '6px', padding: '10px', outline: 'none', resize: 'none' },
+  createPostActions: { textAlign: 'right', marginTop: '10px' },
+  postBtn: { backgroundColor: '#0070f3', color: '#fff', border: 'none', padding: '8px 20px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' },
+  postHeader: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' },
+  authorName: { margin: 0 },
+  postTime: { fontSize: '12px', color: '#777' },
+  deleteBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' },
+  postContent: { fontSize: '15px', marginBottom: '15px' },
+  postFooter: { display: 'flex', borderTop: '1px solid #eee', paddingTop: '10px', gap: '10px' },
+  actionBtn: { flex: 1, padding: '6px', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold', color: '#555' },
+  commentSection: { marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #eee' },
+  commentInput: { flex: 1, padding: '8px', border: '1px solid #ddd', borderRadius: '5px' },
+  sendCommentBtn: { backgroundColor: '#0070f3', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '5px', cursor: 'pointer' },
+  commentBox: { backgroundColor: '#f0f2f5', padding: '8px 12px', borderRadius: '6px', marginTop: '6px', fontSize: '13px' },
+  sidebar: { display: 'flex', flexDirection: 'column', gap: '20px' }
 };
 
 export default HomeFeed;
