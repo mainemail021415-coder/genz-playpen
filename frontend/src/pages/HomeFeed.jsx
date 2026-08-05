@@ -1,57 +1,79 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function HomeFeed({ onLogout }) {
-  const [posts, setPosts] = useState([
-    {
-      id: 1,
-      author: 'Alex_Gamer',
-      avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Alex',
-      time: '2 hours ago',
-      content: 'Kakapanalo lang sa tournament ngayon! 🎮🔥 Sino gusto makipag-duo mamaya?',
-      likes: 12,
-      liked: false,
-    },
-    {
-      id: 2,
-      author: 'CodeMaster_PH',
-      avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Code',
-      time: '5 hours ago',
-      content: 'Sa wakas, nakapasok na rin sa Homefeed gamit ang JWT Authentication! 🚀 Code status: Deployed on Vercel & Render.',
-      likes: 34,
-      liked: false,
-    },
-  ]);
-
+  const [posts, setPosts] = useState([]);
   const [newPostText, setNewPostText] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [isPosting, setIsPosting] = useState(false);
 
-  // Magdagdag ng bagong post sa Feed
-  const handleCreatePost = (e) => {
+  const API_BASE = 'https://genz-playpen-api.onrender.com';
+
+  // 1. KUNIN LAHAT NG POSTS MULA SA MONGODB
+  const fetchPosts = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/posts`);
+      if (response.ok) {
+        const data = await response.json();
+        setPosts(data);
+      } else {
+        console.error('Failed to fetch posts');
+      }
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  // 2. MAG-SAVE NG BAGONG POST SA MONGODB
+  const handleCreatePost = async (e) => {
     e.preventDefault();
     if (!newPostText.trim()) return;
 
-    const newPost = {
-      id: Date.now(),
-      author: 'You (Player 1)',
-      avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=You',
-      time: 'Just now',
-      content: newPostText,
-      likes: 0,
-      liked: false,
-    };
+    setIsPosting(true);
 
-    setPosts([newPost, ...posts]);
-    setNewPostText('');
+    try {
+      const response = await fetch(`${API_BASE}/api/posts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          author: 'Player_1', // Puwedeng palitan ng nakasave na username sa hinaharap
+          content: newPostText,
+        }),
+      });
+
+      if (response.ok) {
+        const savedPost = await response.json();
+        // Idagdag agad ang bagong post sa itaas ng listahan sa UI
+        setPosts([savedPost, ...posts]);
+        setNewPostText('');
+      } else {
+        alert('❌ Nabigong i-share ang post. Paki-subok ulit.');
+      }
+    } catch (error) {
+      console.error('Error creating post:', error);
+      alert('❌ Server error. Paki-check ang internet connection.');
+    } finally {
+      setIsPosting(false);
+    }
   };
 
-  // Like / Unlike Toggle
+  // Local Like Toggle Effect
   const handleLike = (id) => {
     setPosts(
       posts.map((post) => {
-        if (post.id === id) {
+        if (post._id === id) {
+          const isLiked = post.liked;
           return {
             ...post,
-            likes: post.liked ? post.likes - 1 : post.likes + 1,
-            liked: !post.liked,
+            likes: isLiked ? post.likes - 1 : post.likes + 1,
+            liked: !isLiked,
           };
         }
         return post;
@@ -72,7 +94,7 @@ function HomeFeed({ onLogout }) {
           />
           <div style={styles.userMenu}>
             <img
-              src="https://api.dicebear.com/7.x/bottts/svg?seed=You"
+              src="https://api.dicebear.com/7.x/bottts/svg?seed=Player_1"
               alt="Avatar"
               style={styles.navAvatar}
             />
@@ -92,14 +114,14 @@ function HomeFeed({ onLogout }) {
             <form onSubmit={handleCreatePost}>
               <div style={styles.createPostHeader}>
                 <img
-                  src="https://api.dicebear.com/7.x/bottts/svg?seed=You"
+                  src="https://api.dicebear.com/7.x/bottts/svg?seed=Player_1"
                   alt="Avatar"
                   style={styles.avatar}
                 />
                 <textarea
                   value={newPostText}
                   onChange={(e) => setNewPostText(e.target.value)}
-                  placeholder="What's on your mind? Share your gameplay..."
+                  placeholder="What's on your mind? Share your gameplay or thoughts..."
                   rows="3"
                   style={styles.postInput}
                 />
@@ -110,41 +132,68 @@ function HomeFeed({ onLogout }) {
                   <button type="button" style={styles.iconBtn}>🎥 Video</button>
                   <button type="button" style={styles.iconBtn}>🔥 Vibe</button>
                 </div>
-                <button type="submit" style={styles.postBtn}>
-                  Post
+                <button
+                  type="submit"
+                  disabled={isPosting}
+                  style={{
+                    ...styles.postBtn,
+                    backgroundColor: isPosting ? '#93c5fd' : '#0070f3',
+                  }}
+                >
+                  {isPosting ? 'Posting...' : 'Post'}
                 </button>
               </div>
             </form>
           </div>
 
-          {/* POSTS LIST */}
-          {posts.map((post) => (
-            <div key={post.id} style={styles.card}>
-              <div style={styles.postHeader}>
-                <img src={post.avatar} alt={post.author} style={styles.avatar} />
-                <div>
-                  <h4 style={styles.authorName}>{post.author}</h4>
-                  <span style={styles.postTime}>{post.time}</span>
+          {/* POSTS LIST FROM MONGODB */}
+          {loading ? (
+            <div style={styles.card}>
+              <p style={{ textAlign: 'center', color: '#666', margin: 0 }}>
+                ⏳ Loading posts from MongoDB...
+              </p>
+            </div>
+          ) : posts.length === 0 ? (
+            <div style={styles.card}>
+              <p style={{ textAlign: 'center', color: '#666', margin: 0 }}>
+                🎉 Wala pang posts! Maging una sa pag-post sa GenZ Playpen.
+              </p>
+            </div>
+          ) : (
+            posts.map((post) => (
+              <div key={post._id} style={styles.card}>
+                <div style={styles.postHeader}>
+                  <img
+                    src={`https://api.dicebear.com/7.x/bottts/svg?seed=${post.author}`}
+                    alt={post.author}
+                    style={styles.avatar}
+                  />
+                  <div>
+                    <h4 style={styles.authorName}>{post.author}</h4>
+                    <span style={styles.postTime}>
+                      {new Date(post.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+
+                <p style={styles.postContent}>{post.content}</p>
+
+                <div style={styles.postFooter}>
+                  <button
+                    onClick={() => handleLike(post._id)}
+                    style={{
+                      ...styles.actionBtn,
+                      color: post.liked ? '#e74c3c' : '#65676b',
+                    }}
+                  >
+                    {post.liked ? '❤️' : '🤍'} {post.likes || 0} Likes
+                  </button>
+                  <button style={styles.actionBtn}>💬 Comment</button>
+                  <button style={styles.actionBtn}>🔗 Share</button>
                 </div>
               </div>
-
-              <p style={styles.postContent}>{post.content}</p>
-
-              <div style={styles.postFooter}>
-                <button
-                  onClick={() => handleLike(post.id)}
-                  style={{
-                    ...styles.actionBtn,
-                    color: post.liked ? '#e74c3c' : '#65676b',
-                  }}
-                >
-                  {post.liked ? '❤️' : '🤍'} {post.likes} Likes
-                </button>
-                <button style={styles.actionBtn}>💬 Comment</button>
-                <button style={styles.actionBtn}>🔗 Share</button>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
 
         {/* SIDEBAR */}
@@ -172,7 +221,7 @@ function HomeFeed({ onLogout }) {
   );
 }
 
-// STYLES OBJECT (Clean Inline CSS)
+// INLINE STYLES OBJECT
 const styles = {
   appWrapper: {
     backgroundColor: '#f0f2f5',
@@ -266,6 +315,7 @@ const styles = {
     resize: 'none',
     fontFamily: 'inherit',
     outline: 'none',
+    boxSizing: 'border-box',
   },
   createPostActions: {
     display: 'flex',
