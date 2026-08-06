@@ -1,120 +1,200 @@
 import React, { useState } from 'react';
 
-function Auth() {
-  const [isLogin, setIsLogin] = useState(false); // Toggle sa pagitan ng Login at Register
-  const [username, setUsername] = useState('');
+// LIVE BACKEND API URL
+const API_BASE_URL = 'https://api.genziplaypen.online';
+
+const Auth = ({ onAuthSuccess }) => {
+  const [isLogin, setIsLogin] = useState(true);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  // Direct Render URL para sa ating backend
-  const API_URL = 'https://genz-playpen-api.onrender.com';
-
+  // Handle Form Submission (Login or Register)
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage('');
-    setLoading(true);
+    setErrorMessage('');
 
-    // Gamitin ang /api/register o /api/login batay sa napiling mode
-    const endpoint = isLogin ? '/api/login' : '/api/register';
+    if (!email || !password || (!isLogin && !name)) {
+      setErrorMessage('Paki-punan ang lahat ng kinakailangang field.');
+      return;
+    }
+
+    const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+    const payload = isLogin ? { email, password } : { name, email, password };
 
     try {
-      const response = await fetch(`${API_URL}${endpoint}`, {
+      setLoading(true);
+      const res = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
+      const data = await res.json();
 
-      if (response.ok) {
-        if (isLogin) {
-          setMessage('✅ Matagumpay na nakapag-login!');
-          // I-save ang user info sa localStorage kung kinakailangan
-          localStorage.setItem('user', JSON.stringify(data.user));
-          // I-redirect sa home pagkatapos ng 1 segundo
-          setTimeout(() => {
-            window.location.href = '/';
-          }, 1000);
+      if (res.ok) {
+        // I-save ang auth data sa localStorage
+        if (data.token) localStorage.setItem('token', data.token);
+        if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
+
+        // I-trigger ang callback para pumasok sa Feed
+        if (onAuthSuccess) {
+          onAuthSuccess(data);
         } else {
-          setMessage('✅ Matagumpay na nakagawa ng account! Puwede ka nang mag-login.');
-          setIsLogin(true); // Lumipat sa Login tab pagkatapos mag-register
+          window.location.reload(); // Hard reload para ma-update ang App state
         }
-        setUsername('');
-        setPassword('');
       } else {
-        setMessage(`❌ Error: ${data.message || 'May naganap na error.'}`);
+        setErrorMessage(data.message || 'May naganap na error. Pakisubukan ulit.');
       }
-    } catch (error) {
-      console.error('Auth Error:', error);
-      setMessage(`❌ Error: ${error.message}`);
+    } catch (err) {
+      console.error('Auth request error:', err);
+      setErrorMessage('Hindi makakonekta sa server. Tiyaking online ang backend.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '40px auto', padding: '20px', textAlign: 'center', fontFamily: 'Arial, sans-serif' }}>
-      <h2>🎮 GenZiPlaypen {isLogin ? 'Login' : 'Register'}</h2>
-
-      {message && (
-        <div style={{ padding: '10px', marginBottom: '15px', borderRadius: '5px', backgroundColor: '#f0f0f0', wordBreak: 'break-word' }}>
-          {message}
+    <div style={styles.overlay}>
+      <div style={styles.card}>
+        <div style={styles.header}>
+          <h2 style={styles.title}>GenZ Playpen 🚀</h2>
+          <p style={styles.subtitle}>
+            {isLogin ? 'Maligayang pagbabalik! Mag-login para makipag-chika.' : 'Sumali sa komunidad! Gumawa ng account.'}
+          </p>
         </div>
-      )}
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <input
-          type="text"
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-          style={{ padding: '10px', fontSize: '14px', borderRadius: '4px', border: '1px solid #ccc' }}
-        />
+        {errorMessage && <div style={styles.errorBox}>{errorMessage}</div>}
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          style={{ padding: '10px', fontSize: '14px', borderRadius: '4px', border: '1px solid #ccc' }}
-        />
+        <form onSubmit={handleSubmit}>
+          {!isLogin && (
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>Pangalan / Display Name</label>
+              <input
+                type="text"
+                placeholder="Juan Dela Cruz"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                style={styles.input}
+                required
+              />
+            </div>
+          )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            padding: '10px',
-            fontSize: '16px',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: loading ? 'not-allowed' : 'pointer'
-          }}
-        >
-          {loading ? 'Pina-process...' : (isLogin ? 'Mag-login' : 'Gumawa ng Account')}
-        </button>
-      </form>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Email Address</label>
+            <input
+              type="email"
+              placeholder="genz@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={styles.input}
+              required
+            />
+          </div>
 
-      <p style={{ marginTop: '15px', fontSize: '14px' }}>
-        {isLogin ? "Wala ka pang account? " : "May account ka na? "}
-        <button
-          onClick={() => {
-            setIsLogin(!isLogin);
-            setMessage('');
-          }}
-          style={{ background: 'none', border: 'none', color: '#007bff', cursor: 'pointer', textDecoration: 'underline' }}
-        >
-          {isLogin ? 'Mag-register dito' : 'Mag-login dito'}
-        </button>
-      </p>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Password</label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={styles.input}
+              required
+            />
+          </div>
+
+          <button type="submit" disabled={loading} style={styles.submitBtn}>
+            {loading ? 'Pino-process...' : isLogin ? 'Mag-login' : 'Mag-register'}
+          </button>
+        </form>
+
+        <div style={styles.toggleBox}>
+          <span>{isLogin ? 'Wala ka pang account?' : 'May account ka na?'}</span>
+          <button
+            type="button"
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setErrorMessage('');
+            }}
+            style={styles.toggleBtn}
+          >
+            {isLogin ? 'Mag-register Dito' : 'Mag-login Dito'}
+          </button>
+        </div>
+      </div>
     </div>
   );
-}
+};
+
+// Clean UI Styling
+const styles = {
+  overlay: {
+    minHeight: '100vh',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f4f6f8',
+    padding: '20px',
+    fontFamily: 'sans-serif'
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    padding: '30px',
+    borderRadius: '16px',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+    width: '100%',
+    maxWidth: '400px',
+  },
+  header: { textAlign: 'center', marginBottom: '24px' },
+  title: { margin: '0 0 8px 0', color: '#111', fontSize: '24px', fontWeight: 'bold' },
+  subtitle: { margin: 0, color: '#666', fontSize: '14px' },
+  errorBox: {
+    backgroundColor: '#ffebe9',
+    color: '#d73a49',
+    padding: '10px 14px',
+    borderRadius: '8px',
+    fontSize: '13px',
+    marginBottom: '16px',
+    border: '1px solid #ffc1c0'
+  },
+  inputGroup: { marginBottom: '16px' },
+  label: { display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#444' },
+  input: {
+    width: '100%',
+    padding: '10px 12px',
+    borderRadius: '8px',
+    border: '1px solid #ccc',
+    fontSize: '14px',
+    boxSizing: 'border-box',
+    outline: 'none'
+  },
+  submitBtn: {
+    width: '100%',
+    backgroundColor: '#4A90E2',
+    color: '#fff',
+    border: 'none',
+    padding: '12px',
+    borderRadius: '25px',
+    fontSize: '15px',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    marginTop: '10px'
+  },
+  toggleBox: { marginTop: '20px', textAlign: 'center', fontSize: '13px', color: '#666' },
+  toggleBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#4A90E2',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    marginLeft: '6px'
+  }
+};
 
 export default Auth;
