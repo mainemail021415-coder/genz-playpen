@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { io } from 'socket.io-client';
 
 const API_BASE = 'https://genz-playpen-api.onrender.com';
@@ -17,6 +18,11 @@ function HomeFeed({ user, onLogout }) {
   const [activeCommentPostId, setActiveCommentPostId] = useState(null);
   const [commentInput, setCommentInput] = useState('');
 
+  // --- SEARCH BAR STATES ---
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+
   // --- NAVBAR MODALS STATES ---
   const [showChatsModal, setShowChatsModal] = useState(false);
   const [showNotifModal, setShowNotifModal] = useState(false);
@@ -29,10 +35,9 @@ function HomeFeed({ user, onLogout }) {
 
   // --- NOTIFICATIONS STATE ---
   const [notifications, setNotifications] = useState([]);
-
   const unreadNotifCount = notifications.filter((n) => !n.read).length;
 
-  // --- DYNAMIC TIME AGO FORMATTER (WALANG APEKTO SA KASALUKUYANG ORAS) ---
+  // --- DYNAMIC TIME AGO FORMATTER ---
   const formatTimeAgo = (dateString) => {
     if (!dateString) return 'Just now';
     const now = new Date();
@@ -46,7 +51,30 @@ function HomeFeed({ user, onLogout }) {
     return `${Math.floor(diffInSeconds / 86400)}d ago`;
   };
 
-  // --- FETCH NOTIFICATIONS FROM BACKEND ---
+  // --- SEARCH USERS HANDLER ---
+  const handleSearch = async (query) => {
+    setSearchQuery(query);
+    if (!query.trim()) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/users/search?q=${query}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSearchResults(data);
+      }
+    } catch (err) {
+      console.error('Search error:', err);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // --- FETCH NOTIFICATIONS ---
   const fetchNotifications = async () => {
     try {
       const response = await fetch(`${API_BASE}/api/notifications/${currentUsername}`);
@@ -78,12 +106,10 @@ function HomeFeed({ user, onLogout }) {
     fetchPosts();
     fetchNotifications();
 
-    // Socket.io Listener para sa Real-Time Messages
     socket.on('receive_message', (data) => {
       setChatMessages((prev) => [...prev, data]);
     });
 
-    // 🔔 REAL-TIME SOCKET LISTENER PARA SA NOTIFICATIONS NG USER THIS SECOND
     socket.on(`notification_${currentUsername}`, (newNotif) => {
       setNotifications((prev) => [newNotif, ...prev]);
     });
@@ -223,7 +249,6 @@ function HomeFeed({ user, onLogout }) {
     setShowProfileModal(false);
   };
 
-  // MARK NOTIFICATIONS AS READ WHEN OPENED
   const toggleNotifModal = async () => {
     setShowNotifModal(!showNotifModal);
     setShowChatsModal(false);
@@ -252,9 +277,52 @@ function HomeFeed({ user, onLogout }) {
       {/* NAVBAR */}
       <nav style={styles.navbar}>
         <div style={styles.navContainer}>
-          <div style={styles.logo}>🎮 GenZ Playpen</div>
+          <Link to="/" style={{ textDecoration: 'none' }}>
+            <div style={styles.logo}>🎮 GenZ Playpen</div>
+          </Link>
 
-          {/* ACTIONS */}
+          {/* 🔍 SEARCH BAR SECTION */}
+          <div style={{ position: 'relative', width: '250px' }}>
+            <input
+              type="text"
+              placeholder="🔍 Search users..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              style={styles.searchInput}
+            />
+
+            {/* SEARCH RESULTS DROPDOWN */}
+            {searchQuery && (
+              <div style={styles.dropdownModal}>
+                {isSearching ? (
+                  <p style={{ textAlign: 'center', color: '#888', fontSize: '13px', margin: '10px 0' }}>Searching...</p>
+                ) : searchResults.length === 0 ? (
+                  <p style={{ textAlign: 'center', color: '#888', fontSize: '13px', margin: '10px 0' }}>No users found.</p>
+                ) : (
+                  searchResults.map((u) => (
+                    <Link
+                      key={u._id}
+                      to={`/profile/${u.username}`}
+                      onClick={() => setSearchQuery('')}
+                      style={styles.searchResultItem}
+                    >
+                      <img
+                        src={`https://api.dicebear.com/7.x/bottts/svg?seed=${u.username}`}
+                        alt={u.username}
+                        style={{ width: '32px', height: '32px', borderRadius: '50%' }}
+                      />
+                      <div>
+                        <b style={{ fontSize: '13px', display: 'block', color: '#000' }}>@{u.username}</b>
+                        <span style={{ fontSize: '11px', color: '#666' }}>{u.bio || 'No bio available'}</span>
+                      </div>
+                    </Link>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ACTIONS BUTTONS */}
           <div style={styles.navActions}>
             {/* CHATS BUTTON */}
             <div style={{ position: 'relative' }}>
@@ -270,7 +338,7 @@ function HomeFeed({ user, onLogout }) {
                 {unreadNotifCount > 0 && <span style={styles.badge}>{unreadNotifCount}</span>}
               </button>
 
-              {/* NOTIFICATIONS DROPDOWN MODAL */}
+              {/* NOTIFICATIONS DROPDOWN */}
               {showNotifModal && (
                 <div style={styles.dropdownModal}>
                   <h3 style={styles.modalTitle}>🔔 Notifications</h3>
@@ -289,14 +357,19 @@ function HomeFeed({ user, onLogout }) {
                           backgroundColor: notif.read ? '#fff' : '#f0f7ff',
                         }}
                       >
-                        <img
-                          src={`https://api.dicebear.com/7.x/bottts/svg?seed=${notif.sender}`}
-                          alt="Avatar"
-                          style={styles.modalAvatar}
-                        />
+                        <Link to={`/profile/${notif.sender}`}>
+                          <img
+                            src={`https://api.dicebear.com/7.x/bottts/svg?seed=${notif.sender}`}
+                            alt="Avatar"
+                            style={styles.modalAvatar}
+                          />
+                        </Link>
                         <div style={{ flex: 1 }}>
                           <p style={{ margin: 0, fontSize: '13px' }}>
-                            <b>@{notif.sender}</b> {notif.message}
+                            <Link to={`/profile/${notif.sender}`} style={styles.clickableUsername}>
+                              @{notif.sender}
+                            </Link>{' '}
+                            {notif.message}
                           </p>
                           <span style={styles.timeText}>{formatTimeAgo(notif.createdAt)}</span>
                         </div>
@@ -307,7 +380,7 @@ function HomeFeed({ user, onLogout }) {
               )}
             </div>
 
-            {/* PROFILE BUTTON */}
+            {/* PROFILE MENU BUTTON */}
             <div style={{ position: 'relative' }}>
               <button onClick={toggleProfileModal} style={styles.profileBtn}>
                 <img
@@ -328,7 +401,9 @@ function HomeFeed({ user, onLogout }) {
                       style={{ width: '60px', height: '60px', borderRadius: '50%' }}
                     />
                     <h3 style={{ margin: '8px 0 2px 0' }}>@{currentUsername}</h3>
-                    <span style={{ fontSize: '12px', color: '#666' }}>GenZ Member</span>
+                    <Link to={`/profile/${currentUsername}`} style={styles.viewProfileLink}>
+                      👤 View My Profile
+                    </Link>
                   </div>
                   <hr style={styles.divider} />
                   <button onClick={onLogout} style={styles.fullLogoutBtn}>
@@ -341,7 +416,7 @@ function HomeFeed({ user, onLogout }) {
         </div>
       </nav>
 
-      {/* REAL-TIME SOCKET CHAT FLOATING WINDOW */}
+      {/* REAL-TIME LIVE CHAT WINDOW */}
       {showChatsModal && (
         <div style={styles.chatBoxModal}>
           <div style={styles.chatHeader}>
@@ -369,7 +444,9 @@ function HomeFeed({ user, onLogout }) {
                       color: isMe ? '#fff' : '#000',
                     }}
                   >
-                    <span style={styles.msgAuthor}>@{msg.author}</span>
+                    <Link to={`/profile/${msg.author}`} style={{ textDecoration: 'none', color: isMe ? '#fff' : '#000' }}>
+                      <span style={styles.msgAuthor}>@{msg.author}</span>
+                    </Link>
                     <p style={{ margin: '2px 0' }}>{msg.text}</p>
                     <span style={styles.msgTime}>{msg.time}</span>
                   </div>
@@ -401,11 +478,13 @@ function HomeFeed({ user, onLogout }) {
           <div style={styles.card}>
             <form onSubmit={handleCreatePost}>
               <div style={styles.createPostHeader}>
-                <img
-                  src={`https://api.dicebear.com/7.x/bottts/svg?seed=${currentUsername}`}
-                  alt="Avatar"
-                  style={styles.avatar}
-                />
+                <Link to={`/profile/${currentUsername}`}>
+                  <img
+                    src={`https://api.dicebear.com/7.x/bottts/svg?seed=${currentUsername}`}
+                    alt="Avatar"
+                    style={styles.avatar}
+                  />
+                </Link>
                 <textarea
                   value={newPostText}
                   onChange={(e) => setNewPostText(e.target.value)}
@@ -453,13 +532,20 @@ function HomeFeed({ user, onLogout }) {
               return (
                 <div key={post._id} style={styles.card}>
                   <div style={styles.postHeader}>
-                    <img
-                      src={`https://api.dicebear.com/7.x/bottts/svg?seed=${post.author}`}
-                      alt="Avatar"
-                      style={styles.avatar}
-                    />
-                    <div style={{ flex: 1 }}>
-                      <h4 style={styles.authorName}>@{post.author}</h4>
+                    {/* CLICKABLE AVATAR */}
+                    <Link to={`/profile/${post.author}`}>
+                      <img
+                        src={`https://api.dicebear.com/7.x/bottts/svg?seed=${post.author}`}
+                        alt="Avatar"
+                        style={styles.avatar}
+                      />
+                    </Link>
+
+                    {/* CLICKABLE AUTHOR USERNAME */}
+                    <div style={{ flex: 1, marginLeft: '10px' }}>
+                      <Link to={`/profile/${post.author}`} style={{ textDecoration: 'none', color: '#000' }}>
+                        <h4 style={styles.authorName}>@{post.author}</h4>
+                      </Link>
                       <span style={styles.postTime}>{formatTimeAgo(post.createdAt)}</span>
                     </div>
 
@@ -511,7 +597,10 @@ function HomeFeed({ user, onLogout }) {
 
                       {post.comments?.map((c, i) => (
                         <div key={i} style={styles.commentBox}>
-                          <b>@{c.author}: </b> {c.text}
+                          <Link to={`/profile/${c.author}`} style={styles.clickableUsername}>
+                            @{c.author}
+                          </Link>
+                          : {c.text}
                           <div style={{ fontSize: '10px', color: '#888', marginTop: '2px' }}>
                             {formatTimeAgo(c.createdAt)}
                           </div>
@@ -529,13 +618,17 @@ function HomeFeed({ user, onLogout }) {
         <div style={styles.sidebar}>
           <div style={styles.card}>
             <div style={{ textAlign: 'center' }}>
-              <img
-                src={`https://api.dicebear.com/7.x/bottts/svg?seed=${currentUsername}`}
-                alt="Profile"
-                style={{ width: '60px', height: '60px', borderRadius: '50%' }}
-              />
+              <Link to={`/profile/${currentUsername}`}>
+                <img
+                  src={`https://api.dicebear.com/7.x/bottts/svg?seed=${currentUsername}`}
+                  alt="Profile"
+                  style={{ width: '60px', height: '60px', borderRadius: '50%' }}
+                />
+              </Link>
               <h3 style={{ margin: '10px 0 0 0' }}>@{currentUsername}</h3>
-              <p style={{ fontSize: '12px', color: '#777', margin: '4px 0 0 0' }}>Logged In User</p>
+              <Link to={`/profile/${currentUsername}`} style={styles.viewProfileLink}>
+                View My Profile
+              </Link>
             </div>
           </div>
         </div>
@@ -550,18 +643,22 @@ const styles = {
   navbar: { backgroundColor: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', padding: '10px 0', position: 'sticky', top: 0, zIndex: 100 },
   navContainer: { maxWidth: '1000px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', padding: '0 20px', alignItems: 'center' },
   logo: { fontSize: '20px', fontWeight: 'bold', color: '#0070f3' },
+  searchInput: { width: '100%', padding: '8px 14px', borderRadius: '20px', border: '1px solid #ddd', outline: 'none', backgroundColor: '#f0f2f5', fontSize: '13px' },
+  searchResultItem: { display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', textDecoration: 'none', borderRadius: '6px', cursor: 'pointer', transition: '0.2s' },
   navActions: { display: 'flex', alignItems: 'center', gap: '15px' },
   iconBtn: { backgroundColor: '#e4e6eb', border: 'none', borderRadius: '50%', width: '40px', height: '40px', fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' },
   badge: { position: 'absolute', top: '-2px', right: '-2px', backgroundColor: '#e74c3c', color: '#fff', fontSize: '11px', fontWeight: 'bold', borderRadius: '10px', padding: '2px 6px' },
   profileBtn: { display: 'flex', alignItems: 'center', gap: '8px', border: 'none', background: '#e4e6eb', padding: '4px 12px 4px 4px', borderRadius: '20px', cursor: 'pointer' },
   profileName: { fontWeight: 'bold', fontSize: '14px' },
   navAvatar: { width: '32px', height: '32px', borderRadius: '50%' },
-  dropdownModal: { position: 'absolute', top: '50px', right: '0', backgroundColor: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', borderRadius: '10px', width: '300px', maxHeight: '400px', overflowY: 'auto', padding: '12px', zIndex: 1000 },
+  dropdownModal: { position: 'absolute', top: '45px', left: '0', right: '0', backgroundColor: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', borderRadius: '10px', maxHeight: '350px', overflowY: 'auto', padding: '8px', zIndex: 1000 },
   modalTitle: { margin: '0 0 8px 0', fontSize: '16px' },
   divider: { border: 'none', borderTop: '1px solid #eee', margin: '8px 0' },
   modalAvatar: { width: '36px', height: '36px', borderRadius: '50%' },
   notifItem: { display: 'flex', gap: '10px', padding: '8px', borderRadius: '6px', marginBottom: '4px', alignItems: 'center' },
   timeText: { fontSize: '11px', color: '#888' },
+  clickableUsername: { textDecoration: 'none', color: '#0070f3', fontWeight: 'bold' },
+  viewProfileLink: { display: 'inline-block', marginTop: '6px', fontSize: '12px', color: '#0070f3', textDecoration: 'none', fontWeight: 'bold' },
   fullLogoutBtn: { width: '100%', backgroundColor: '#ff4d4f', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', marginTop: '5px' },
 
   // CHAT BOX FLOATING MODAL
@@ -588,7 +685,7 @@ const styles = {
   previewImage: { width: '100%', maxHeight: '250px', objectFit: 'cover', borderRadius: '8px' },
   removeImageBtn: { position: 'absolute', top: '8px', right: '8px', backgroundColor: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: '26px', height: '26px', cursor: 'pointer' },
   postBtn: { backgroundColor: '#0070f3', color: '#fff', border: 'none', padding: '8px 20px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' },
-  postHeader: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' },
+  postHeader: { display: 'flex', alignItems: 'center', marginBottom: '10px' },
   authorName: { margin: 0 },
   postTime: { fontSize: '12px', color: '#777' },
   deleteBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' },

@@ -1,19 +1,21 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const multer = require('multer');
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const http = require('http');
 const { Server } = require('socket.io');
-require('dotenv').config();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// --- FORCE GOOGLE DNS FOR MONGO_URI RESOLUTION ---
+// Nilalagpasan nito ang local ISP DNS blocking para sa MongoDB Atlas SRV lookup
+const dns = require('dns');
+dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 const app = express();
 const server = http.createServer(app);
 
-// 1. SOCKET.IO SETUP WITH CORS
+// --- SOCKET.IO SETUP ---
 const io = new Server(server, {
   cors: {
     origin: '*',
@@ -21,324 +23,446 @@ const io = new Server(server, {
   }
 });
 
-// 2. MIDDLEWARES
-app.use(cors({ origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE'], allowedHeaders: ['Content-Type', 'Authorization'] }));
+// --- MIDDLEWARES ---
+app.use(cors());
 app.use(express.json());
 
-// 3. MONGODB CONNECTION
-const MONGO_URI = process.env.MONGO_URI || 'YOUR_MONGODB_URI';
-mongoose.connect(MONGO_URI)
-  .then(() => console.log('✅ Connected to MongoDB Atlas'))
-  .catch((err) => console.error('❌ MongoDB Connection Error:', err));
+// Siguraduhing umiiral ang 'uploads' folder para sa mga larawan
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
+app.use('/uploads', express.static(uploadDir));
 
-// 4. CLOUDINARY CONFIGURATION
-cloudinary.config({
-  cloud_name: process.env.CLOUD_NAME,
-  api_key: process.env.CLOUD_API_KEY,
-  api_secret: process.env.CLOUD_API_SECRET,
-});
-
-// 5. MULTER CLOUDINARY STORAGE SETUP
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'genz_playpen_uploads',
-    allowed_formats: ['jpg', 'png', 'jpeg', 'webp', 'gif'],
+// --- MULTER STORAGE SETUP (For Image Uploads) ---
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
   },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
 });
+const upload = multer({ storage });
 
-const upload = multer({ storage: storage });
+// --- MONGOOSE MODELS ---
 
-// 6. SCHEMAS & MODELS
+// 1. User Schema
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  following: { type: [String], default: [] },
-  followers: { type: [String], default: [] },
-  createdAt: { type: Date, default: Date.now }
-});
-const User = mongoose.model('User', userSchema);
-
-const postSchema = new mongoose.Schema({
-  author: { type: String, required: true },
-  content: { type: String },
-  imageUrl: { type: String, default: null },
-  likes: { type: [String], default: [] },
-  comments: [
+  bio: { type: String, default: '' },
+  followers: [{ type: String }],
+  following: [{ type: String }],
+  profileComments: [
     {
-      author: { type: String, required: true },
-      text: { type: String, required: true },
+      author: String,
+      text: String,
       createdAt: { type: Date, default: Date.now }
     }
-  ],
-  createdAt: { type: Date, default: Date.now }
-});
+  ]
+}, { timestamps: true });
+
+const User = mongoose.model('User', userSchema);
+
+// 2. Post Schema
+const postSchema = new mongoose.Schema({
+  author: { type: String, required: true },
+  content: { type: String, default: '' },
+  imageUrl: { type: String, default: '' },
+  likes: [{ type: String }],
+  comments: [
+    {
+      author: String,
+      text: String,
+      createdAt: { type: Date, default: Date.now }
+    }
+  ]
+}, { timestamps: true });
+
 const Post = mongoose.model('Post', postSchema);
 
-// 🔔 NOTIFICATION SCHEMA
+// 3. Notification Schema
 const notificationSchema = new mongoose.Schema({
-  recipient: { type: String, required: true }, // Sino ang makakatanggap
-  sender: { type: String, required: true },    // Sino ang gumawa ng aksyon
-  type: { type: String, enum: ['follow', 'post_comment', 'profile_comment', 'like'], required: true },
+  recipient: { type: String, required: true },
+  sender: { type: String, required: true },
+  type: { type: String, required: true },
   message: { type: String, required: true },
-  read: { type: Boolean, default: false },
-  createdAt: { type: Date, default: Date.now }
-});
+  read: { type: Boolean, default: false }
+}, { timestamps: true });
+
 const Notification = mongoose.model('Notification', notificationSchema);
 
-// Helper function para sa Real-Time Notification via Socket.io
-const createAndSendNotification = async ({ recipient, sender, type, message }) => {
-  if (recipient === sender) return; // Huwag i-notify ang sarili
 
-  try {
-    const notif = new Notification({ recipient, sender, type, message });
-    await notif.save();
-
-    // I-broadcast via socket sa partikular na user o sa lahat
-    io.emit(`notification_${recipient}`, notif);
-  } catch (err) {
-    console.error('Notification creation error:', err);
-  }
-};
-
-// 7. SOCKET.IO LISTENERS (REAL-TIME CHAT & USER ROOMS)
+// --- SOCKET.IO EVENT HANDLERS ---
 io.on('connection', (socket) => {
-  console.log(`⚡ User Connected: ${socket.id}`);
+  console.log(`⚡ User connected: ${socket.id}`);
 
   socket.on('send_message', (data) => {
     io.emit('receive_message', data);
   });
 
   socket.on('disconnect', () => {
-    console.log(`❌ User Disconnected: ${socket.id}`);
+    console.log(`❌ User disconnected: ${socket.id}`);
   });
 });
 
-// 8. API ROUTES
 
-// Root Check
-app.get('/', (req, res) => res.send('🎮 GenZ Playpen API is running!'));
+// --- HELPER FUNCTION FOR REALTIME NOTIFICATIONS ---
+const sendNotification = async (recipient, sender, type, message) => {
+  if (recipient === sender) return;
 
-// AUTH: REGISTER
+  try {
+    const notif = new Notification({ recipient, sender, type, message });
+    await notif.save();
+
+    io.emit(`notification_${recipient}`, notif);
+  } catch (err) {
+    console.error('Error sending notification:', err);
+  }
+};
+
+
+// ==========================================
+// 🔑 AUTHENTICATION ENDPOINTS (REGISTER & LOGIN)
+// ==========================================
+
+// 1. Register Endpoint
 app.post('/api/register', async (req, res) => {
   try {
     const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ message: 'Kailangan ang username at password.' });
-    const existingUser = await User.findOne({ username });
-    if (existingUser) return res.status(400).json({ message: 'May gumagamit na ng username na ito.' });
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ username, password: hashedPassword });
+    if (!username || !password) {
+      return res.status(400).json({ message: 'Lahat ng fields ay kailangan.' });
+    }
+
+    const existingUser = await User.findOne({ username });
+    if (existingUser) {
+      return res.status(400).json({ message: 'May gumagamit na ng username na ito.' });
+    }
+
+    const newUser = new User({ username, password });
     await newUser.save();
-    res.status(201).json({ message: 'User registered successfully!' });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error sa registration.' });
+
+    res.status(201).json({ message: 'Matagumpay na nakaregister!', user: { username: newUser.username } });
+  } catch (err) {
+    console.error('Register Error:', err);
+    res.status(500).json({ message: 'Server error sa pag-register.' });
   }
 });
 
-// AUTH: LOGIN
+// 2. Login Endpoint
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
+
     const user = await User.findOne({ username });
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    if (!user || user.password !== password) {
       return res.status(400).json({ message: 'Maling username o password.' });
     }
-    const secretKey = process.env.JWT_SECRET || 'supersecretkey123';
-    const token = jwt.sign({ userId: user._id, username: user.username }, secretKey, { expiresIn: '1d' });
-    res.status(200).json({ message: 'Login successful!', token, user: { id: user._id, username: user.username } });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error sa login.' });
+
+    res.status(200).json({
+      message: 'Matagumpay na nakapag-login!',
+      user: { username: user.username, bio: user.bio }
+    });
+  } catch (err) {
+    console.error('Login Error:', err);
+    res.status(500).json({ message: 'Server error sa pag-login.' });
   }
 });
 
-// 🔔 NOTIFICATIONS ROUTES
-app.get('/api/notifications/:username', async (req, res) => {
+
+// ==========================================
+// 🔍 USER ROUTES & SEARCH ENDPOINTS
+// ==========================================
+
+// 🔍 Search Users Endpoint
+app.get('/api/users/search', async (req, res) => {
   try {
-    const notifications = await Notification.find({ recipient: req.params.username }).sort({ createdAt: -1 });
-    res.status(200).json(notifications);
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching notifications.' });
+    const { q } = req.query;
+    if (!q || !q.trim()) {
+      return res.status(200).json([]);
+    }
+
+    const users = await User.find({
+      username: { $regex: q.trim(), $options: 'i' }
+    })
+      .select('username bio _id')
+      .limit(10);
+
+    res.status(200).json(users);
+  } catch (err) {
+    console.error('Search Users Error:', err);
+    res.status(500).json({ message: 'Error searching users.' });
   }
 });
 
-app.put('/api/notifications/read/:username', async (req, res) => {
+// Get User Profile Data & Posts
+app.get('/api/users/profile/:username', async (req, res) => {
   try {
-    await Notification.updateMany({ recipient: req.params.username, read: false }, { read: true });
-    res.status(200).json({ message: 'Notifications marked as read.' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error updating notifications.' });
+    const { username } = req.params;
+    const user = await User.findOne({ username }).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const posts = await Post.find({ author: username }).sort({ createdAt: -1 });
+
+    res.status(200).json({ user, posts });
+  } catch (err) {
+    console.error('Get Profile Error:', err);
+    res.status(500).json({ message: 'Error fetching profile.' });
   }
 });
 
-// 👥 FOLLOW USER ROUTE (WITH NOTIFICATION)
+// Follow / Unfollow User Toggle
 app.post('/api/users/:username/follow', async (req, res) => {
   try {
     const targetUsername = req.params.username;
     const { currentUsername } = req.body;
 
     if (targetUsername === currentUsername) {
-      return res.status(400).json({ message: 'Hindi mo pwedeng i-follow ang sarili mo.' });
+      return res.status(400).json({ message: 'You cannot follow yourself.' });
     }
 
     const targetUser = await User.findOne({ username: targetUsername });
     const currentUser = await User.findOne({ username: currentUsername });
 
-    if (!targetUser || !currentUser) return res.status(404).json({ message: 'User not found.' });
-
-    const isFollowing = currentUser.following.includes(targetUsername);
-
-    if (isFollowing) {
-      // Unfollow
-      currentUser.following = currentUser.following.filter(u => u !== targetUsername);
-      targetUser.followers = targetUser.followers.filter(u => u !== currentUsername);
-    } else {
-      // Follow
-      currentUser.following.push(targetUsername);
-      targetUser.followers.push(currentUsername);
-
-      // Trigger Follow Notification
-      await createAndSendNotification({
-        recipient: targetUsername,
-        sender: currentUsername,
-        type: 'follow',
-        message: 'started following you.'
-      });
+    if (!targetUser || !currentUser) {
+      return res.status(404).json({ message: 'User not found.' });
     }
 
-    await currentUser.save();
+    const isFollowing = targetUser.followers.includes(currentUsername);
+
+    if (isFollowing) {
+      targetUser.followers = targetUser.followers.filter(u => u !== currentUsername);
+      currentUser.following = currentUser.following.filter(u => u !== targetUsername);
+    } else {
+      targetUser.followers.push(currentUsername);
+      currentUser.following.push(targetUsername);
+
+      await sendNotification(
+        targetUsername,
+        currentUsername,
+        'follow',
+        'started following you.'
+      );
+    }
+
     await targetUser.save();
+    await currentUser.save();
 
     res.status(200).json({ isFollowing: !isFollowing });
-  } catch (error) {
-    res.status(500).json({ message: 'Error processing follow.' });
+  } catch (err) {
+    console.error('Follow Error:', err);
+    res.status(500).json({ message: 'Error toggling follow.' });
   }
 });
 
-// 💬 PROFILE COMMENT ROUTE (WITH NOTIFICATION)
+// Add Comment to User Profile (Wall / Guestbook)
 app.post('/api/users/:username/comment', async (req, res) => {
   try {
-    const targetUsername = req.params.username;
+    const { username } = req.params;
     const { author, text } = req.body;
 
-    // Trigger Profile Comment Notification
-    await createAndSendNotification({
-      recipient: targetUsername,
-      sender: author,
-      type: 'profile_comment',
-      message: `commented on your profile: "${text.substring(0, 20)}..."`
-    });
+    const user = await User.findOne({ username });
+    if (!user) return res.status(404).json({ message: 'User not found.' });
 
-    res.status(200).json({ message: 'Profile comment added successfully!' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error adding profile comment.' });
+    const newComment = { author, text, createdAt: new Date() };
+    user.profileComments.unshift(newComment);
+    await user.save();
+
+    await sendNotification(
+      username,
+      author,
+      'comment',
+      'left a comment on your profile wall.'
+    );
+
+    res.status(200).json(user.profileComments);
+  } catch (err) {
+    console.error('Profile Comment Error:', err);
+    res.status(500).json({ message: 'Error adding wall comment.' });
   }
 });
 
-// POSTS: GET ALL
+
+// ==========================================
+// 📝 POSTS ENDPOINTS
+// ==========================================
+
+// Get All Posts (Feed)
 app.get('/api/posts', async (req, res) => {
   try {
     const posts = await Post.find().sort({ createdAt: -1 });
     res.status(200).json(posts);
-  } catch (error) {
+  } catch (err) {
+    console.error('Fetch Posts Error:', err);
     res.status(500).json({ message: 'Error fetching posts.' });
   }
 });
 
-// POSTS: CREATE
+// Create New Post (With Image Upload)
 app.post('/api/posts', upload.single('image'), async (req, res) => {
   try {
     const { author, content } = req.body;
-    const imageUrl = req.file ? req.file.path : null;
+    let imageUrl = '';
 
-    if (!content && !imageUrl) {
-      return res.status(400).json({ message: 'Kailangan ng text o picture para makapag-post.' });
+    if (req.file) {
+      const protocol = req.protocol;
+      const host = req.get('host');
+      imageUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
     }
 
     const newPost = new Post({
-      author: author || 'Anonymous',
+      author,
       content: content || '',
-      imageUrl: imageUrl
+      imageUrl
     });
 
     await newPost.save();
     res.status(201).json(newPost);
-  } catch (error) {
-    console.error('Upload Error:', error);
+  } catch (err) {
+    console.error('Create Post Error:', err);
     res.status(500).json({ message: 'Error creating post.' });
   }
 });
 
-// POSTS: LIKE / UNLIKE (WITH NOTIFICATION)
+// Like / Unlike Post Toggle
 app.put('/api/posts/:id/like', async (req, res) => {
   try {
+    const { id } = req.params;
     const { username } = req.body;
-    const post = await Post.findById(req.params.id);
-    if (!post) return res.status(404).json({ message: 'Post not found' });
 
-    const index = post.likes.indexOf(username);
-    if (index === -1) {
+    const post = await Post.findById(id);
+    if (!post) return res.status(404).json({ message: 'Post not found.' });
+
+    const hasLiked = post.likes.includes(username);
+
+    if (hasLiked) {
+      post.likes = post.likes.filter(u => u !== username);
+    } else {
       post.likes.push(username);
 
-      // Trigger Like Notification
-      await createAndSendNotification({
-        recipient: post.author,
-        sender: username,
-        type: 'like',
-        message: 'liked your post.'
-      });
-    } else {
-      post.likes.splice(index, 1);
+      await sendNotification(
+        post.author,
+        username,
+        'like',
+        'liked your post.'
+      );
     }
+
     await post.save();
     res.status(200).json(post);
-  } catch (error) {
+  } catch (err) {
+    console.error('Like Post Error:', err);
     res.status(500).json({ message: 'Error liking post.' });
   }
 });
 
-// POSTS: COMMENT (WITH NOTIFICATION)
+// Add Comment to Post
 app.post('/api/posts/:id/comment', async (req, res) => {
   try {
+    const { id } = req.params;
     const { author, text } = req.body;
-    const post = await Post.findById(req.params.id);
-    if (!post) return res.status(404).json({ message: 'Post not found' });
 
-    post.comments.push({ author, text });
+    const post = await Post.findById(id);
+    if (!post) return res.status(404).json({ message: 'Post not found.' });
+
+    const newComment = { author, text, createdAt: new Date() };
+    post.comments.push(newComment);
     await post.save();
 
-    // Trigger Post Comment Notification
-    await createAndSendNotification({
-      recipient: post.author,
-      sender: author,
-      type: 'post_comment',
-      message: `commented on your post: "${text.substring(0, 20)}..."`
-    });
+    await sendNotification(
+      post.author,
+      author,
+      'comment',
+      'commented on your post.'
+    );
 
-    res.status(201).json(post);
-  } catch (error) {
-    res.status(500).json({ message: 'Error commenting.' });
+    res.status(200).json(post);
+  } catch (err) {
+    console.error('Comment Post Error:', err);
+    res.status(500).json({ message: 'Error adding comment.' });
   }
 });
 
-// POSTS: DELETE
+// Delete Post
 app.delete('/api/posts/:id', async (req, res) => {
   try {
+    const { id } = req.params;
     const { username } = req.body;
-    const post = await Post.findById(req.params.id);
-    if (!post) return res.status(404).json({ message: 'Post not found' });
+
+    const post = await Post.findById(id);
+    if (!post) return res.status(404).json({ message: 'Post not found.' });
 
     if (post.author !== username) {
-      return res.status(403).json({ message: 'Unauthorized action.' });
+      return res.status(403).json({ message: 'Unauthorized to delete this post.' });
     }
 
-    await Post.findByIdAndDelete(req.params.id);
+    await Post.findByIdAndDelete(id);
     res.status(200).json({ message: 'Post deleted successfully.' });
-  } catch (error) {
+  } catch (err) {
+    console.error('Delete Post Error:', err);
     res.status(500).json({ message: 'Error deleting post.' });
   }
 });
 
-// 9. LISTEN ON HTTP SERVER
+
+// ==========================================
+// 🔔 NOTIFICATIONS ENDPOINTS
+// ==========================================
+
+// Get User Notifications
+app.get('/api/notifications/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const notifications = await Notification.find({ recipient: username })
+      .sort({ createdAt: -1 })
+      .limit(20);
+
+    res.status(200).json(notifications);
+  } catch (err) {
+    console.error('Fetch Notifications Error:', err);
+    res.status(500).json({ message: 'Error fetching notifications.' });
+  }
+});
+
+// Mark Notifications as Read
+app.put('/api/notifications/read/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    await Notification.updateMany(
+      { recipient: username, read: false },
+      { $set: { read: true } }
+    );
+
+    res.status(200).json({ message: 'Notifications marked as read.' });
+  } catch (err) {
+    console.error('Read Notifications Error:', err);
+    res.status(500).json({ message: 'Error marking notifications as read.' });
+  }
+});
+
+
+// ==========================================
+// 🚀 SERVER & DATABASE CONNECTION
+// ==========================================
+
+const ATLAS_URI = 'mongodb+srv://genziplaypen:happysky15@cluster0.bvz3pdl.mongodb.net/genz_playpen?retryWrites=true&w=majority&appName=Cluster0';
+
+const MONGO_URI = process.env.MONGO_URI || ATLAS_URI;
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`🚀 Server with Socket.io listening on port ${PORT}`));
+
+mongoose.connect(MONGO_URI)
+  .then(() => {
+    console.log('✅ MongoDB Connected successfully.');
+    server.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('❌ MongoDB Connection Error:', err);
+  });

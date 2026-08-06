@@ -1,61 +1,74 @@
 import React, { useState, useEffect } from 'react';
-import { jwtDecode } from 'jwt-decode';
-import Login from './pages/Login';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+
+// Import Pages
 import HomeFeed from './pages/HomeFeed';
+import Profile from './pages/Profile';
+import Auth from './pages/Auth'; // Siguraduhing may Auth/Login component ka
 
 function App() {
-  const [token, setToken] = useState(null);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Kunin ang kasalukuyang logged-in user mula sa LocalStorage (kung mayroon na)
+  const [currentUser, setCurrentUser] = useState(() => {
+    const savedUser = localStorage.getItem('genz_user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
 
-  // Function para i-decode ang token at makuha ang username
-  const processToken = (jwtToken) => {
-    try {
-      const decoded = jwtDecode(jwtToken);
-      setToken(jwtToken);
-      setUser(decoded); // Naglalaman ng { userId, username }
-    } catch (error) {
-      console.error('Invalid token:', error);
-      localStorage.removeItem('token');
-      setToken(null);
-      setUser(null);
-    }
+  // Handler para sa Login
+  const handleLogin = (userData) => {
+    setCurrentUser(userData);
+    localStorage.setItem('genz_user', JSON.stringify(userData));
   };
 
-  useEffect(() => {
-    const savedToken = localStorage.getItem('token');
-    if (savedToken) {
-      processToken(savedToken);
-    }
-    setLoading(false);
-  }, []);
-
-  const handleLoginSuccess = (newToken) => {
-    processToken(newToken);
-  };
-
+  // Handler para sa Logout
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
-    setUser(null);
+    setCurrentUser(null);
+    localStorage.removeItem('genz_user');
+    localStorage.removeItem('genz_token');
   };
-
-  if (loading) {
-    return (
-      <div style={{ textAlign: 'center', marginTop: '50px', fontFamily: 'sans-serif' }}>
-        <h2>Loading GenZ Playpen...</h2>
-      </div>
-    );
-  }
 
   return (
-    <div className="app-container">
-      {!token ? (
-        <Login onLoginSuccess={handleLoginSuccess} />
-      ) : (
-        <HomeFeed user={user} onLogout={handleLogout} />
-      )}
-    </div>
+    <Router>
+      <Routes>
+        {/* ROUTE 1: AUTHENTICATION (LOGIN / REGISTER) */}
+        <Route
+          path="/login"
+          element={
+            !currentUser ? (
+              <Auth onLogin={handleLogin} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        {/* ROUTE 2: HOME FEED (MAIN PAGE) */}
+        <Route
+          path="/"
+          element={
+            currentUser ? (
+              <HomeFeed user={currentUser} onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+
+        {/* ROUTE 3: PUBLIC USER PROFILE PAGE */}
+        <Route
+          path="/profile/:username"
+          element={
+            currentUser ? (
+              <Profile currentUser={currentUser} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+
+        {/* CATCH-ALL ROUTE (REDIRECT SA HOME KAPAG MALI ANG URL) */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
   );
 }
 
