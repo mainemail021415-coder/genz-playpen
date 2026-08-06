@@ -1,422 +1,144 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-
-const API_BASE = 'https://genz-playpen-api.onrender.com'; // Palitan kung iba ang backend URL mo
+import { useParams } from 'react-router-dom';
 
 function Profile({ currentUser }) {
-  const { username } = useParams(); // Kukunin ang username mula sa URL (/profile/:username)
-  const loggedInUsername = currentUser?.username || 'Anonymous';
-
-  // --- STATES ---
+  const { username } = useParams();
   const [profileUser, setProfileUser] = useState(null);
-  const [userPosts, setUserPosts] = useState([]);
+  const [posts, setPosts] = useState([]);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [wallComment, setWallComment] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // Profile Comments State (Guestbook / Wall)
-  const [profileComments, setProfileComments] = useState([]);
-  const [newProfileComment, setNewProfileComment] = useState('');
+  const API_URL = 'https://genz-playpen-api.onrender.com';
 
-  // Post Interactions State
-  const [activeCommentPostId, setActiveCommentPostId] = useState(null);
-  const [postCommentInput, setPostCommentInput] = useState('');
+  useEffect(() => {
+    fetchProfileData();
+  }, [username]);
 
-  // --- DYNAMIC TIME AGO FORMATTER ---
-  const formatTimeAgo = (dateString) => {
-    if (!dateString) return 'Just now';
-    const now = new Date();
-    const past = new Date(dateString);
-    const diffInSeconds = Math.floor((now - past) / 1000);
-
-    if (diffInSeconds < 10) return 'Just now';
-    if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    return `${Math.floor(diffInSeconds / 86400)}d ago`;
-  };
-
-  // --- FETCH PROFILE DATA & POSTS ---
   const fetchProfileData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const res = await fetch(`${API_BASE}/api/users/profile/${username}`);
-      if (res.ok) {
-        const data = await res.json();
+      const response = await fetch(`${API_URL}/api/users/profile/${username}`);
+      if (response.ok) {
+        const data = await response.json();
         setProfileUser(data.user);
-        setUserPosts(data.posts || []);
-        setProfileComments(data.user?.profileComments || []);
-
-        // Suriin kung naka-follow na ang kasalukuyang logged-in user
-        if (data.user?.followers && data.user.followers.includes(loggedInUsername)) {
-          setIsFollowing(true);
-        } else {
-          setIsFollowing(false);
-        }
-      } else {
-        console.error('Failed to fetch user profile.');
+        setPosts(data.posts);
+        setIsFollowing(data.user.followers?.includes(currentUser.username));
       }
     } catch (err) {
-      console.error('Error fetching profile:', err);
+      console.error('Fetch profile error:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (username) {
-      fetchProfileData();
-    }
-  }, [username, loggedInUsername]);
-
-  // --- TOGGLE FOLLOW / UNFOLLOW ---
   const handleFollowToggle = async () => {
-    if (username === loggedInUsername) {
-      return alert('Hindi mo pwedeng i-follow ang sarili mo.');
-    }
-
     try {
-      const res = await fetch(`${API_BASE}/api/users/${username}/follow`, {
+      const response = await fetch(`${API_URL}/api/users/${username}/follow`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentUsername: loggedInUsername })
+        body: JSON.stringify({ currentUsername: currentUser.username }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
+      if (response.ok) {
+        const data = await response.json();
         setIsFollowing(data.isFollowing);
-
-        // Update Followers count sa UI nang realtime
-        setProfileUser((prev) => {
-          if (!prev) return prev;
-          const updatedFollowers = data.isFollowing
-            ? [...prev.followers, loggedInUsername]
-            : prev.followers.filter((u) => u !== loggedInUsername);
-
-          return { ...prev, followers: updatedFollowers };
-        });
+        fetchProfileData(); // Reload stats
       }
     } catch (err) {
-      console.error('Error toggling follow:', err);
+      console.error('Follow error:', err);
     }
   };
 
-  // --- ADD PROFILE COMMENT (WALL / GUESTBOOK) ---
-  const handleAddProfileComment = async (e) => {
+  const handleAddWallComment = async (e) => {
     e.preventDefault();
-    if (!newProfileComment.trim()) return;
+    if (!wallComment.trim()) return;
 
     try {
-      const res = await fetch(`${API_BASE}/api/users/${username}/comment`, {
+      const response = await fetch(`${API_URL}/api/users/${username}/comment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          author: loggedInUsername,
-          text: newProfileComment
-        })
+        body: JSON.stringify({ author: currentUser.username, text: wallComment }),
       });
 
-      if (res.ok) {
-        const commentObj = {
-          author: loggedInUsername,
-          text: newProfileComment,
-          createdAt: new Date().toISOString()
-        };
-        setProfileComments([commentObj, ...profileComments]);
-        setNewProfileComment('');
+      if (response.ok) {
+        setWallComment('');
+        fetchProfileData();
       }
     } catch (err) {
-      console.error('Error adding profile comment:', err);
+      console.error('Wall comment error:', err);
     }
   };
 
-  // --- POST INTERACTIONS: LIKE ---
-  const handleLikePost = async (postId) => {
-    try {
-      const res = await fetch(`${API_BASE}/api/posts/${postId}/like`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: loggedInUsername })
-      });
-
-      if (res.ok) {
-        const updatedPost = await res.json();
-        setUserPosts(userPosts.map((p) => (p._id === postId ? updatedPost : p)));
-      }
-    } catch (err) {
-      console.error('Like error:', err);
-    }
-  };
-
-  // --- POST INTERACTIONS: COMMENT ---
-  const handleAddPostComment = async (postId) => {
-    if (!postCommentInput.trim()) return;
-
-    try {
-      const res = await fetch(`${API_BASE}/api/posts/${postId}/comment`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ author: loggedInUsername, text: postCommentInput })
-      });
-
-      if (res.ok) {
-        const updatedPost = await res.json();
-        setUserPosts(userPosts.map((p) => (p._id === postId ? updatedPost : p)));
-        setPostCommentInput('');
-      }
-    } catch (err) {
-      console.error('Post comment error:', err);
-    }
-  };
-
-  // --- POST INTERACTIONS: DELETE ---
-  const handleDeletePost = async (postId) => {
-    if (!window.confirm('Sigurado ka bang gusto mo itong burahin?')) return;
-
-    try {
-      const res = await fetch(`${API_BASE}/api/posts/${postId}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: loggedInUsername })
-      });
-
-      if (res.ok) {
-        setUserPosts(userPosts.filter((p) => p._id !== postId));
-      }
-    } catch (err) {
-      console.error('Delete post error:', err);
-    }
-  };
-
-  if (loading) {
-    return <div style={styles.loadingContainer}>⏳ Loading user profile...</div>;
-  }
-
-  if (!profileUser) {
-    return <div style={styles.notFoundContainer}>❌ User hindi nahanap.</div>;
-  }
-
-  const isOwnProfile = username === loggedInUsername;
+  if (loading) return <div style={{ textAlign: 'center', marginTop: '40px' }}>Loading profile...</div>;
+  if (!profileUser) return <div style={{ textAlign: 'center', marginTop: '40px' }}>User not found.</div>;
 
   return (
-    <div style={styles.pageWrapper}>
-      <div style={styles.container}>
-        {/* TOP NAVIGATION LINK */}
-        <Link to="/" style={styles.backLink}>
-          ⬅ Back to Feed
-        </Link>
-
-        {/* 👤 PROFILE HEADER CARD */}
-        <div style={styles.profileCard}>
-          <div style={styles.profileHeader}>
-            <img
-              src={`https://api.dicebear.com/7.x/bottts/svg?seed=${profileUser.username}`}
-              alt="Avatar"
-              style={styles.avatar}
-            />
-            <div style={styles.profileInfo}>
-              <h2 style={styles.usernameTitle}>@{profileUser.username}</h2>
-              <p style={styles.bioText}>{profileUser.bio || 'Wala pang bio na nilagay.'}</p>
-
-              {/* STATS COUNTER */}
-              <div style={styles.statsContainer}>
-                <div style={styles.statBox}>
-                  <b>{userPosts.length}</b>
-                  <span>Posts</span>
-                </div>
-                <div style={styles.statBox}>
-                  <b>{profileUser.followers?.length || 0}</b>
-                  <span>Followers</span>
-                </div>
-                <div style={styles.statBox}>
-                  <b>{profileUser.following?.length || 0}</b>
-                  <span>Following</span>
-                </div>
-              </div>
-
-              {/* ACTION BUTTON */}
-              {!isOwnProfile && (
-                <button
-                  onClick={handleFollowToggle}
-                  style={{
-                    ...styles.followBtn,
-                    backgroundColor: isFollowing ? '#e4e6eb' : '#0070f3',
-                    color: isFollowing ? '#000' : '#fff'
-                  }}
-                >
-                  {isFollowing ? '✓ Following' : '+ Follow'}
-                </button>
-              )}
-            </div>
-          </div>
+    <div style={{ maxWidth: '600px', margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
+      {/* Profile Header */}
+      <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.1)', textAlign: 'center' }}>
+        <h2>👤 @{profileUser.username}</h2>
+        <p style={{ color: '#666' }}>{profileUser.bio || 'Walang bio.'}</p>
+        
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', margin: '15px 0' }}>
+          <div><strong>{profileUser.followers?.length || 0}</strong> Followers</div>
+          <div><strong>{profileUser.following?.length || 0}</strong> Following</div>
         </div>
 
-        {/* 💬 PROFILE WALL / GUESTBOOK COMMENTS */}
-        <div style={styles.card}>
-          <h3 style={styles.sectionTitle}>💬 Profile Wall Comments</h3>
-          <form onSubmit={handleAddProfileComment} style={styles.commentForm}>
-            <input
-              type="text"
-              placeholder={`Mag-iwan ng comment sa profile ni @${profileUser.username}...`}
-              value={newProfileComment}
-              onChange={(e) => setNewProfileComment(e.target.value)}
-              style={styles.inputField}
-            />
-            <button type="submit" style={styles.sendBtn}>
-              Comment
-            </button>
-          </form>
-
-          {profileComments.length === 0 ? (
-            <p style={styles.emptyText}>Wala pang nag-iiwan ng comment sa profile na ito.</p>
-          ) : (
-            profileComments.map((c, idx) => (
-              <div key={idx} style={styles.wallCommentBox}>
-                <div style={styles.wallCommentHeader}>
-                  {/* CLICKABLE USERNAME LINK */}
-                  <Link to={`/profile/${c.author}`} style={styles.clickableUsername}>
-                    @{c.author}
-                  </Link>
-                  <span style={styles.timeText}>{formatTimeAgo(c.createdAt)}</span>
-                </div>
-                <p style={{ margin: '4px 0 0 0', fontSize: '14px' }}>{c.text}</p>
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* 📝 USER'S POSTS FEED */}
-        <h3 style={styles.sectionTitle}>📸 Posts by @{profileUser.username}</h3>
-        {userPosts.length === 0 ? (
-          <div style={styles.card}>
-            <p style={styles.emptyText}>Wala pang naipopost na larawan o text ang user na ito.</p>
-          </div>
-        ) : (
-          userPosts.map((post) => {
-            const isLiked = post.likes?.includes(loggedInUsername);
-
-            return (
-              <div key={post._id} style={styles.card}>
-                <div style={styles.postHeader}>
-                  {/* CLICKABLE AVATAR */}
-                  <Link to={`/profile/${post.author}`}>
-                    <img
-                      src={`https://api.dicebear.com/7.x/bottts/svg?seed=${post.author}`}
-                      alt="Avatar"
-                      style={styles.smallAvatar}
-                    />
-                  </Link>
-                  <div style={{ flex: 1, marginLeft: '10px' }}>
-                    {/* CLICKABLE AUTHOR USERNAME */}
-                    <Link to={`/profile/${post.author}`} style={{ textDecoration: 'none', color: '#000' }}>
-                      <h4 style={{ margin: 0 }}>@{post.author}</h4>
-                    </Link>
-                    <span style={styles.timeText}>{formatTimeAgo(post.createdAt)}</span>
-                  </div>
-
-                  {isOwnProfile && (
-                    <button onClick={() => handleDeletePost(post._id)} style={styles.deleteBtn}>
-                      🗑️
-                    </button>
-                  )}
-                </div>
-
-                {post.content && <p style={styles.postContent}>{post.content}</p>}
-
-                {post.imageUrl && (
-                  <img src={post.imageUrl} alt="Attachment" style={styles.postImage} />
-                )}
-
-                <div style={styles.postFooter}>
-                  <button
-                    onClick={() => handleLikePost(post._id)}
-                    style={{ ...styles.actionBtn, color: isLiked ? '#e74c3c' : '#555' }}
-                  >
-                    {isLiked ? '❤️' : '🤍'} {post.likes?.length || 0} Likes
-                  </button>
-                  <button
-                    onClick={() =>
-                      setActiveCommentPostId(activeCommentPostId === post._id ? null : post._id)
-                    }
-                    style={styles.actionBtn}
-                  >
-                    💬 {post.comments?.length || 0} Comments
-                  </button>
-                </div>
-
-                {/* POST COMMENTS DROPDOWN */}
-                {activeCommentPostId === post._id && (
-                  <div style={styles.commentSection}>
-                    <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                      <input
-                        type="text"
-                        placeholder="Mag-comment sa post..."
-                        value={postCommentInput}
-                        onChange={(e) => setPostCommentInput(e.target.value)}
-                        style={styles.inputField}
-                      />
-                      <button
-                        onClick={() => handleAddPostComment(post._id)}
-                        style={styles.sendBtn}
-                      >
-                        Send
-                      </button>
-                    </div>
-
-                    {post.comments?.map((c, i) => (
-                      <div key={i} style={styles.postCommentBox}>
-                        <Link to={`/profile/${c.author}`} style={styles.clickableUsername}>
-                          @{c.author}
-                        </Link>
-                        : {c.text}
-                        <div style={styles.timeText}>{formatTimeAgo(c.createdAt)}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })
+        {currentUser.username !== username && (
+          <button
+            onClick={handleFollowToggle}
+            style={{
+              padding: '8px 20px',
+              borderRadius: '20px',
+              border: 'none',
+              backgroundColor: isFollowing ? '#ccc' : '#007bff',
+              color: isFollowing ? '#333' : '#fff',
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}
+          >
+            {isFollowing ? 'Unfollow' : 'Follow'}
+          </button>
         )}
       </div>
+
+      {/* User Posts */}
+      <h3 style={{ marginTop: '30px' }}>📝 Posts ni @{username}</h3>
+      {posts.length === 0 ? (
+        <p style={{ color: '#777' }}>Wala pang nai-post na content.</p>
+      ) : (
+        posts.map((p) => (
+          <div key={p._id} style={{ backgroundColor: '#fff', padding: '15px', borderRadius: '8px', margin: '10px 0', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+            <p>{p.content}</p>
+            {p.imageUrl && <img src={p.imageUrl} alt="post" style={{ maxWidth: '100%', borderRadius: '6px' }} />}
+            <small style={{ color: '#888' }}>{new Date(p.createdAt).toLocaleDateString()}</small>
+          </div>
+        ))
+      )}
+
+      {/* Profile Wall Comments */}
+      <h3 style={{ marginTop: '30px' }}>💬 Profile Wall</h3>
+      <form onSubmit={handleAddWallComment} style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+        <input
+          type="text"
+          placeholder="Mag-iwan ng mensahe sa wall..."
+          value={wallComment}
+          onChange={(e) => setWallComment(e.target.value)}
+          style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+        />
+        <button type="submit" style={{ padding: '8px 15px', backgroundColor: '#28a745', color: '#fff', border: 'none', borderRadius: '4px' }}>
+          Post
+        </button>
+      </form>
+
+      {profileUser.profileComments?.map((c, index) => (
+        <div key={index} style={{ backgroundColor: '#e9ecef', padding: '10px', borderRadius: '5px', marginBottom: '8px' }}>
+          <strong>@{c.author}:</strong> {c.text}
+        </div>
+      ))}
     </div>
   );
 }
-
-// STYLES OBJECT
-const styles = {
-  pageWrapper: { backgroundColor: '#f0f2f5', minHeight: '100vh', padding: '20px 0', fontFamily: 'sans-serif' },
-  container: { maxWidth: '700px', margin: '0 auto', padding: '0 15px' },
-  loadingContainer: { textAlign: 'center', padding: '50px', fontSize: '18px', color: '#666' },
-  notFoundContainer: { textAlign: 'center', padding: '50px', fontSize: '18px', color: '#e74c3c' },
-  backLink: { textDecoration: 'none', color: '#0070f3', fontWeight: 'bold', display: 'inline-block', marginBottom: '15px' },
-  profileCard: { backgroundColor: '#fff', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: '20px' },
-  profileHeader: { display: 'flex', gap: '20px', alignItems: 'center' },
-  avatar: { width: '90px', height: '90px', borderRadius: '50%', backgroundColor: '#eee' },
-  smallAvatar: { width: '38px', height: '38px', borderRadius: '50%' },
-  profileInfo: { flex: 1 },
-  usernameTitle: { margin: '0 0 4px 0', fontSize: '22px' },
-  bioText: { margin: '0 0 12px 0', color: '#666', fontSize: '14px' },
-  statsContainer: { display: 'flex', gap: '20px', marginBottom: '14px' },
-  statBox: { display: 'flex', flexDirection: 'column', fontSize: '13px', color: '#555' },
-  followBtn: { border: 'none', padding: '8px 20px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' },
-  card: { backgroundColor: '#fff', borderRadius: '10px', padding: '18px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '15px' },
-  sectionTitle: { fontSize: '16px', margin: '0 0 12px 0', color: '#333' },
-  commentForm: { display: 'flex', gap: '8px', marginBottom: '15px' },
-  inputField: { flex: 1, padding: '9px 12px', border: '1px solid #ddd', borderRadius: '6px', outline: 'none' },
-  sendBtn: { backgroundColor: '#0070f3', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' },
-  emptyText: { textAlign: 'center', color: '#888', fontSize: '13px', margin: '10px 0' },
-  wallCommentBox: { backgroundColor: '#f7f8fa', padding: '10px', borderRadius: '6px', marginBottom: '8px' },
-  wallCommentHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  clickableUsername: { textDecoration: 'none', color: '#0070f3', fontWeight: 'bold' },
-  timeText: { fontSize: '11px', color: '#888' },
-  postHeader: { display: 'flex', alignItems: 'center', marginBottom: '10px' },
-  deleteBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' },
-  postContent: { fontSize: '15px', marginBottom: '12px' },
-  postImage: { width: '100%', maxHeight: '400px', objectFit: 'cover', borderRadius: '8px', marginBottom: '12px' },
-  postFooter: { display: 'flex', borderTop: '1px solid #eee', paddingTop: '10px', gap: '10px' },
-  actionBtn: { flex: 1, padding: '6px', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' },
-  commentSection: { marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #eee' },
-  postCommentBox: { backgroundColor: '#f0f2f5', padding: '8px 12px', borderRadius: '6px', marginTop: '6px', fontSize: '13px' }
-};
 
 export default Profile;

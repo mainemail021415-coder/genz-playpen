@@ -1,73 +1,93 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-
-// Import Pages
-import HomeFeed from './pages/HomeFeed';
+import Auth from './pages/Auth';
 import Profile from './pages/Profile';
-import Auth from './pages/Auth'; // Siguraduhing may Auth/Login component ka
+import Feed from './pages/Feed';
+import Navbar from './components/Navbar';
 
 function App() {
-  // Kunin ang kasalukuyang logged-in user mula sa LocalStorage (kung mayroon na)
-  const [currentUser, setCurrentUser] = useState(() => {
-    const savedUser = localStorage.getItem('genz_user');
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Handler para sa Login
-  const handleLogin = (userData) => {
-    setCurrentUser(userData);
-    localStorage.setItem('genz_user', JSON.stringify(userData));
-  };
+  // Suriin ang localStorage para sa Token o Saved User Session
+  useEffect(() => {
+    const token = localStorage.getItem('userToken') || localStorage.getItem('token');
+    const savedUser = localStorage.getItem('user');
 
-  // Handler para sa Logout
+    if (savedUser) {
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch (err) {
+        console.error("Error parsing saved user from localStorage:", err);
+        localStorage.removeItem('user');
+      }
+    } else if (token) {
+      // Kung may token ngunit walang saved user object, i-decode ang payload
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setUser({
+          _id: payload.id || payload.userId || payload._id,
+          username: payload.username || payload.name || 'User'
+        });
+      } catch (err) {
+        console.error("Invalid token format:", err);
+        localStorage.removeItem('userToken');
+        localStorage.removeItem('token');
+      }
+    }
+    setLoading(false);
+  }, []);
+
+  // Logout Function
   const handleLogout = () => {
-    setCurrentUser(null);
-    localStorage.removeItem('genz_user');
-    localStorage.removeItem('genz_token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('userToken');
+    localStorage.removeItem('token');
+    setUser(null);
   };
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', marginTop: '50px', color: '#f8fafc', fontFamily: 'Arial, sans-serif' }}>
+        <h2>Loading GenZiPlaypen...</h2>
+      </div>
+    );
+  }
 
   return (
     <Router>
-      <Routes>
-        {/* ROUTE 1: AUTHENTICATION (LOGIN / REGISTER) */}
-        <Route
-          path="/login"
-          element={
-            !currentUser ? (
-              <Auth onLogin={handleLogin} />
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
-        />
+      <div className="app-container" style={{ fontFamily: 'Arial, sans-serif', minHeight: '100vh', backgroundColor: '#0f172a', color: '#f8fafc' }}>
+        
+        {/* Navigation Bar / Header - I-re-render lamang kapag may authenticated user */}
+        {user && <Navbar user={user} handleLogout={handleLogout} />}
 
-        {/* ROUTE 2: HOME FEED (MAIN PAGE) */}
-        <Route
-          path="/"
-          element={
-            currentUser ? (
-              <HomeFeed user={currentUser} onLogout={handleLogout} />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
+        {/* Navigation Routes */}
+        <main style={{ padding: '20px 10px' }}>
+          <Routes>
+            {/* Auth Route */}
+            <Route 
+              path="/auth" 
+              element={!user ? <Auth /> : <Navigate to="/" replace />} 
+            />
+            
+            {/* Main Feed Route */}
+            <Route 
+              path="/" 
+              element={user ? <Feed /> : <Navigate to="/auth" replace />} 
+            />
 
-        {/* ROUTE 3: PUBLIC USER PROFILE PAGE */}
-        <Route
-          path="/profile/:username"
-          element={
-            currentUser ? (
-              <Profile currentUser={currentUser} />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
+            {/* Profile Route */}
+            <Route 
+              path="/profile/:id" 
+              element={user ? <Profile currentUser={user} /> : <Navigate to="/auth" replace />} 
+            />
 
-        {/* CATCH-ALL ROUTE (REDIRECT SA HOME KAPAG MALI ANG URL) */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+            {/* Fallback Route */}
+            <Route path="*" element={<Navigate to={user ? "/" : "/auth"} replace />} />
+          </Routes>
+        </main>
+
+      </div>
     </Router>
   );
 }
