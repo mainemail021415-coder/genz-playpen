@@ -23,8 +23,16 @@ const io = new Server(server, {
   }
 });
 
-// --- MIDDLEWARES ---
-app.use(cors());
+// --- MIDDLEWARES & CORS CONFIGURATION ---
+app.use(cors({
+  origin: '*', // Pinapayagan ang lahat ng connection (localhost, Vercel, atbp.)
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Handlers para sa OPTIONS (Pre-flight CORS requests)
+app.options('*', cors());
+
 app.use(express.json());
 
 // Siguraduhing umiiral ang 'uploads' folder para sa mga larawan
