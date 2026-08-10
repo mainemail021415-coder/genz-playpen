@@ -1,0 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap');
+
+/* Moving Vibrant Background */
+body {
+  margin: 0;
+  padding: 20px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: linear-gradient(-45deg, #ff007f, #7f00ff, #00f0ff, #ff00a0);
+  background-size: 400% 400%;
+  animation: vibrantBG 12s ease infinite;
+  min-height: 100vh;
+}
+
+@keyframes vibrantBG {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Glassmorphism Card Style */
+.glass-card {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+  padding: 32px;
+  color: #ffffff;
+  margin: 20px auto;
+  max-width: 800px;
+}
+
+/* Vibrant Button */
+.vibrant-btn {
+  background: linear-gradient(135deg, #ff007f, #7f00ff);
+  color: #ffffff;
+  font-weight: 700;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.vibrant-btn:hover {
+  transform: translateY(-3px) scale(1.05);
+}
