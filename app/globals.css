@@ -1,15 +1,23 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap');
 
-/* Force Global Body Styles */
+/* Direct Native Styling Fallback */
+:root {
+  --bg-gradient: linear-gradient(-45deg, #ff007f, #7f00ff, #00f0ff, #ff00a0);
+}
+
+* {
+  box-sizing: border-box;
+}
+
 html, body {
   margin: 0 !important;
-  padding: 20px !important;
-  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  padding: 0 !important;
+  width: 100% !important;
+  min-height: 100vh !important;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif !important;
   background: linear-gradient(-45deg, #ff007f, #7f00ff, #00f0ff, #ff00a0) !important;
   background-size: 400% 400% !important;
   animation: vibrantBG 12s ease infinite !important;
-  min-height: 100vh !important;
   color: #ffffff !important;
 }
 
@@ -19,28 +27,35 @@ html, body {
   100% { background-position: 0% 50%; }
 }
 
-/* Glassmorphism Card Style */
-.glass-card {
-  background: rgba(255, 255, 255, 0.25) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-  border-radius: 24px !important;
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2) !important;
-  padding: 32px !important;
-  color: #ffffff !important;
-  margin: 20px auto !important;
-  max-width: 800px !important;
+/* Glassmorphism containers */
+div, main, section, form {
+  color: #ffffff;
 }
 
-/* Vibrant Button */
-.vibrant-btn {
+/* Target card containers */
+.glass-card, [class*="glass"], [class*="card"], main > div {
+  background: rgba(255, 255, 255, 0.2) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-radius: 20px !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2) !important;
+}
+
+button {
   background: linear-gradient(135deg, #ff007f, #7f00ff) !important;
   color: #ffffff !important;
-  font-weight: 700 !important;
+  font-weight: bold !important;
   border: none !important;
-  padding: 12px 24px !important;
-  border-radius: 50px !important;
+  border-radius: 12px !important;
+  padding: 10px 20px !important;
   cursor: pointer !important;
-  transition: all 0.3s ease !important;
+}
+
+input, select, textarea {
+  background: rgba(255, 255, 255, 0.9) !important;
+  color: #1a1a1a !important;
+  border: 1px solid #ddd !important;
+  border-radius: 8px !important;
+  padding: 10px !important;
 }
