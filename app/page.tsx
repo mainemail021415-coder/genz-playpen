@@ -86,7 +86,7 @@ export default function HomePage() {
       setHistoryLogs(logs);
     }
 
-    setSearchLoading(false);
+    setSearchLoading(false); // Inayos dito para tumawag sa tamang setter function
   };
 
   // --- STAFF PIN HANDLER ---
@@ -190,7 +190,7 @@ export default function HomePage() {
             <Sparkles className="w-3.5 h-3.5 animate-pulse" /> Official Tracking Portal
           </div>
           <h1 className="text-3xl md:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-300 to-cyan-400">
-            GEN Z PLAYPEN
+            GenZi Playpen
           </h1>
         </div>
 
