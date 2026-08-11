@@ -44,11 +44,11 @@ export default function RootLayout({ children }) {
             >
               <div style={{ fontSize: '34px', fontWeight: '900', letterSpacing: '-0.5px', display: 'flex', alignItems: 'center' }}>
                 {/* Gen ay kulay Blue */}
-                <span style={{ color: '#3b82f6', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>Gen</span>
+                <span className="logo-blue" style={{ color: '#3b82f6', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>Gen</span>
                 {/* Z ay kulay Red */}
-                <span style={{ color: '#dc2626', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>Z</span>
+                <span className="logo-red" style={{ color: '#dc2626', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>Z</span>
                 {/* i PlayPen ay kulay Blue */}
-                <span style={{ color: '#3b82f6', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>i PlayPen</span>
+                <span className="logo-blue" style={{ color: '#3b82f6', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>i PlayPen</span>
                 
                 <span style={{ fontSize: '24px', marginLeft: '6px' }}>🏃‍♂️</span>
               </div>
