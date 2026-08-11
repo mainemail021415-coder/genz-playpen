@@ -32,31 +32,25 @@ export default function RootLayout({ children }) {
               gap: '15px'
             }}
           >
-            {/* 3D Logo Identity matched to the Image with correct spelling case */}
+            {/* 3D Logo Identity - Recolored to Blue with Red Z */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <div style={{ fontSize: '34px', fontWeight: '900', letterSpacing: '-0.5px', display: 'flex', alignItems: 'center' }}>
-                <span style={{ color: '#00bfff', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>G</span>
-                <span style={{ color: '#7cd924', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>e</span>
-                <span style={{ color: '#ff8c00', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>n</span>
-                <span style={{ color: '#ff1493', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>Z</span>
-                <span style={{ color: '#13294b', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>i</span>
-                
-                <span style={{ color: '#00bfff', textShadow: '2px 2px 4px rgba(0,0,0,0.1)', marginLeft: '8px' }}>P</span>
-                <span style={{ color: '#7cd924', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>l</span>
-                <span style={{ color: '#ff8c00', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>a</span>
-                <span style={{ color: '#ff1493', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>y</span>
-                <span style={{ color: '#00bfff', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>P</span>
-                <span style={{ color: '#7cd924', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>e</span>
-                <span style={{ color: '#ff8c00', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>n</span>
+                {/* Gen ay kulay Blue */}
+                <span style={{ color: '#3b82f6', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>Gen</span>
+                {/* Z ay kulay Red */}
+                <span style={{ color: '#dc2626', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>Z</span>
+                {/* i PlayPen ay kulay Blue */}
+                <span style={{ color: '#3b82f6', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>i PlayPen</span>
                 
                 <span style={{ fontSize: '24px', marginLeft: '6px' }}>🏃‍♂️</span>
               </div>
+              
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                <div style={{ width: '20px', height: '4px', backgroundColor: '#00bfff', borderRadius: '10px' }}></div>
+                <div style={{ width: '20px', height: '4px', backgroundColor: '#3b82f6', borderRadius: '10px' }}></div>
                 <span style={{ fontSize: '14px', fontWeight: '800', color: '#13294b', fontStyle: 'italic' }}>
                   "the third place."
                 </span>
-                <div style={{ width: '20px', height: '4px', backgroundColor: '#ff8c00', borderRadius: '10px' }}></div>
+                <div style={{ width: '20px', height: '4px', backgroundColor: '#dc2626', borderRadius: '10px' }}></div>
               </div>
             </div>
 
