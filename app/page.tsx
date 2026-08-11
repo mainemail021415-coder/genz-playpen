@@ -194,7 +194,7 @@ export default function HomePage() {
           </h1>
         </div>
 
-        {/* 🌟 MAGKAKAHILERANG NAVIGATION BUTTONS 🌟 */}
+        {/* 🌟 NAVIGATION BUTTONS 🌟 */}
         <div className="bg-slate-900/60 border border-white/10 p-3 rounded-3xl backdrop-blur-xl shadow-2xl mb-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             
@@ -267,9 +267,9 @@ export default function HomePage() {
         {/* DYNAMIC CONTENT CONTAINER */}
         <div className="bg-slate-900/50 border border-white/10 rounded-3xl p-6 md:p-8 backdrop-blur-xl shadow-2xl">
           
-          {/* TAB 1: SEARCH PLAYER / PARENT PLAYER TRACKER */}
+          {/* TAB 1: SEARCH PLAYER */}
           {activeTab === 'search' && (
-            <div className="space-y-6 animate-fadeIn">
+            <div className="space-y-6">
               <div className="text-center max-w-xl mx-auto space-y-2">
                 <h2 className="text-2xl md:text-3xl font-extrabold text-pink-400 flex items-center justify-center gap-2">
                   📍 Parent Player Tracker
@@ -312,7 +312,6 @@ export default function HomePage() {
                   <div className="bg-slate-900/90 border border-white/15 rounded-2xl p-6 shadow-xl space-y-4">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-white/10 pb-4">
                       <div>
-                        {/* Ginawang text-white para litaw na litaw ang pangalan */}
                         <h3 className="text-2xl font-black text-white flex items-center gap-2">
                           <User className="w-6 h-6 text-pink-400" /> {playerInfo.full_name}
                         </h3>
@@ -322,7 +321,6 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    {/* Ginawang text-slate-100 para sa malinaw na subdetails */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-slate-100">
                       <div className="flex items-center gap-2">
                         <ShieldCheck className="w-4 h-4 text-pink-400" />
@@ -352,10 +350,9 @@ export default function HomePage() {
                               <span className="text-white">⚪ Checked Out ({historyLogs[0].branch_name})</span>
                             )}
                           </div>
-                          {/* Ginawang text-slate-300 para visible ang timestamp */}
                           <div className="text-xs text-slate-300 mt-1 flex items-center gap-1">
                             <Clock className="w-3.5 h-3.5" />
-                            Huling Na-update: {new Date(historyLogs[0].checked_in_at).toLocaleString('en-PH')}
+                            Huling Na-update: {historyLogs[0].checked_in_at ? new Date(historyLogs[0].checked_in_at).toLocaleString('en-PH') : 'N/A'}
                           </div>
                         </div>
                       ) : (
@@ -396,10 +393,10 @@ export default function HomePage() {
                                   </span>
                                 </td>
                                 <td className="py-3 px-2 text-slate-200">
-                                  {new Date(log.checked_in_at).toLocaleString('en-PH', {
+                                  {log.checked_in_at ? new Date(log.checked_in_at).toLocaleString('en-PH', {
                                     dateStyle: 'medium',
                                     timeStyle: 'short',
-                                  })}
+                                  }) : 'N/A'}
                                 </td>
                               </tr>
                             ))}
@@ -416,7 +413,7 @@ export default function HomePage() {
 
           {/* TAB 2: MEMBERSHIP */}
           {activeTab === 'membership' && (
-            <div className="space-y-5 animate-fadeIn">
+            <div className="space-y-5">
               <h2 className="text-2xl font-bold text-cyan-400 flex items-center gap-2">
                 <IdCard className="w-6 h-6" /> Membership & VIP Cards
               </h2>
@@ -436,7 +433,7 @@ export default function HomePage() {
 
           {/* TAB 3: STAFF BRANCH PORTAL */}
           {activeTab === 'staff' && (
-            <div className="animate-fadeIn">
+            <div>
               {!isAuthenticated ? (
                 /* Locked PIN Screen */
                 <div className="max-w-md mx-auto text-center space-y-4 py-4">
