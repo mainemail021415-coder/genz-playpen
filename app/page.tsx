@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Search, IdCard, Building2, Sparkles, ArrowRight, Lock, Unlock, CheckCircle, AlertCircle, Clock, User, Phone, ShieldCheck } from 'lucide-react';
+import { Search, IdCard, Building2, Sparkles, Lock, Unlock, Clock, User, Phone, ShieldCheck } from 'lucide-react';
 
 interface PlayerData {
   full_name: string;
@@ -165,54 +165,60 @@ export default function HomePage() {
 
       {/* Mini Header Inside the Box */}
       <div className="text-center mb-8 space-y-2 relative z-10">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-pink-500/30 bg-pink-500/10 text-pink-300 text-xs font-semibold uppercase tracking-widest">
-          <Sparkles className="w-3.5 h-3.5 animate-pulse" /> Official Tracking Portal
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-pink-500 bg-pink-950/80 text-pink-200 text-xs font-bold uppercase tracking-widest shadow-md">
+          <Sparkles className="w-3.5 h-3.5 animate-pulse text-pink-400" /> Official Tracking Portal
         </div>
         
         {/* RECOLORED HEADER: Blue text with Red Z */}
-        <h1 className="text-3xl md:text-4xl font-black tracking-tight">
+        <h1 className="text-3xl md:text-4xl font-black tracking-tight pt-2">
           <span className="text-blue-500">Gen</span>
           <span className="text-red-600">Z</span>
           <span className="text-blue-500">i PlayPen</span>
         </h1>
       </div>
 
-      {/* Navigation Buttons inside Component */}
-      <div className="bg-slate-900/80 border border-white/10 p-2 rounded-2xl shadow-xl mb-8 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+      {/* Navigation Buttons inside Component - REMOVED GREY BACKGROUND AND BORDER */}
+      <div className="mb-8 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <button
             onClick={() => setActiveTab('search')}
-            className={`flex items-center justify-between p-3.5 rounded-xl transition-all ${
-              activeTab === 'search' ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg' : 'bg-slate-800/50 hover:bg-slate-800 text-slate-300'
+            className={`flex items-center justify-center p-4 rounded-xl transition-all font-black text-sm tracking-wide ${
+              activeTab === 'search' 
+                ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-xl scale-105' 
+                : 'bg-slate-900 border border-slate-800 text-white hover:bg-slate-800'
             }`}
           >
             <div className="flex items-center gap-3">
-              <Search className="w-4 h-4 text-pink-400" />
-              <div className="text-left font-bold text-sm">Search Player</div>
+              <Search className={`w-4 h-4 ${activeTab === 'search' ? 'text-white' : 'text-pink-500'}`} />
+              <div>SEARCH PLAYER</div>
             </div>
           </button>
 
           <button
             onClick={() => setActiveTab('membership')}
-            className={`flex items-center justify-between p-3.5 rounded-xl transition-all ${
-              activeTab === 'membership' ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg' : 'bg-slate-800/50 hover:bg-slate-800 text-slate-300'
+            className={`flex items-center justify-center p-4 rounded-xl transition-all font-black text-sm tracking-wide ${
+              activeTab === 'membership' 
+                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-xl scale-105' 
+                : 'bg-slate-900 border border-slate-800 text-white hover:bg-slate-800'
             }`}
           >
             <div className="flex items-center gap-3">
-              <IdCard className="w-4 h-4 text-cyan-400" />
-              <div className="text-left font-bold text-sm">Membership</div>
+              <IdCard className={`w-4 h-4 ${activeTab === 'membership' ? 'text-white' : 'text-cyan-500'}`} />
+              <div>MEMBERSHIP</div>
             </div>
           </button>
 
           <button
             onClick={() => setActiveTab('staff')}
-            className={`flex items-center justify-between p-3.5 rounded-xl transition-all ${
-              activeTab === 'staff' ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg' : 'bg-slate-800/50 hover:bg-slate-800 text-slate-300'
+            className={`flex items-center justify-center p-4 rounded-xl transition-all font-black text-sm tracking-wide ${
+              activeTab === 'staff' 
+                ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-xl scale-105' 
+                : 'bg-slate-900 border border-slate-800 text-white hover:bg-slate-800'
             }`}
           >
             <div className="flex items-center gap-3">
-              <Building2 className="w-4 h-4 text-violet-400" />
-              <div className="text-left font-bold text-sm">Staff Branch</div>
+              <Building2 className={`w-4 h-4 ${activeTab === 'staff' ? 'text-white' : 'text-violet-500'}`} />
+              <div>STAFF BRANCH</div>
             </div>
           </button>
         </div>
@@ -226,12 +232,12 @@ export default function HomePage() {
               <h2 className="text-xl font-extrabold text-pink-400 flex items-center justify-center gap-2 mb-2">
                 📍 Parent Player Tracker
               </h2>
-              <p className="text-slate-400 text-sm">
+              <p className="text-slate-300 text-sm font-medium">
                 I-type ang Membership ID ng anak upang makita ang kasalukuyang lokasyon at history ng mga pumasok na branch.
               </p>
             </div>
 
-            {/* FIXED SEARCH INPUT (DARK BACKGROUND, LIGHT TEXT FOR HIGH CONTRAST) */}
+            {/* SEARCH INPUT */}
             <form onSubmit={handleSearchPlayer} className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto">
               <input
                 type="text"
@@ -243,9 +249,9 @@ export default function HomePage() {
               <button
                 type="submit"
                 disabled={searchLoading}
-                className="bg-gradient-to-r from-pink-500 to-purple-600 px-8 py-3.5 rounded-xl font-bold text-white hover:opacity-90 shadow-md disabled:opacity-50 text-base"
+                className="bg-gradient-to-r from-pink-500 to-purple-600 px-8 py-3.5 rounded-xl font-black text-white hover:opacity-90 shadow-md disabled:opacity-50 text-base tracking-wide"
               >
-                {searchLoading ? 'Searching...' : 'Search 🚀'}
+                {searchLoading ? 'Searching...' : 'SEARCH 🚀'}
               </button>
             </form>
 
@@ -257,7 +263,7 @@ export default function HomePage() {
 
             {playerInfo && (
               <div className="space-y-6 max-w-2xl mx-auto">
-                {/* Info Card - FIXED HIGH CONTRAST TEXT FOR WORDS */}
+                {/* Info Card */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4 shadow-lg text-white">
                   <div className="border-b border-slate-800 pb-3">
                     <h3 className="text-xl font-black !text-white flex items-center gap-2 capitalize">
@@ -300,7 +306,7 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Logs Card - FIXED TABLE HEADERS & COLUMN TEXT CONTRAST */}
+                {/* Logs Card */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
                   <h3 className="text-md font-bold !text-white mb-3 flex items-center gap-2">📜 History Log</h3>
                   {historyLogs.length === 0 ? (
@@ -342,11 +348,11 @@ export default function HomePage() {
           <div className="space-y-4 max-w-2xl mx-auto text-center">
             <h2 className="text-xl font-bold text-cyan-400 flex items-center justify-center gap-2"><IdCard className="w-5 h-5" /> Membership Tiers</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left pt-2">
-              <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-slate-300">
+              <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-slate-200">
                 <div className="text-cyan-400 font-bold">Standard Pass</div>
                 <p className="text-xs text-slate-400 mt-1">Access sa daily tracking logs at standard branch entries.</p>
               </div>
-              <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-slate-300">
+              <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-slate-200">
                 <div className="text-purple-400 font-bold">VIP Pass</div>
                 <p className="text-xs text-slate-400 mt-1">Priority check-in at exclusive event discounts.</p>
               </div>
@@ -359,7 +365,7 @@ export default function HomePage() {
           <div className="max-w-md mx-auto py-4">
             {!isAuthenticated ? (
               <div className="text-center space-y-4">
-                <div className="w-12 h-12 bg-pink-500/10 text-pink-400 rounded-xl flex items-center justify-center mx-auto border border-pink-500/20"><Lock className="w-6 trim-6" /></div>
+                <div className="w-12 h-12 bg-pink-500/10 text-pink-400 rounded-xl flex items-center justify-center mx-auto border border-pink-500/20"><Lock className="w-6 h-6" /></div>
                 <h2 className="text-xl font-bold text-white">Staff Access Only</h2>
                 <form onSubmit={handlePinSubmit} className="space-y-3">
                   <input
