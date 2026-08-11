@@ -32,8 +32,16 @@ export default function RootLayout({ children }) {
               gap: '15px'
             }}
           >
-            {/* 3D Logo Identity - Recolored to Blue with Red Z */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            {/* 3D Logo Identity - Recolored to Blue with Red Z (Wrapped in a styled Link to prevent text override) */}
+            <Link 
+              href="/" 
+              style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center',
+                textDecoration: 'none'
+              }}
+            >
               <div style={{ fontSize: '34px', fontWeight: '900', letterSpacing: '-0.5px', display: 'flex', alignItems: 'center' }}>
                 {/* Gen ay kulay Blue */}
                 <span style={{ color: '#3b82f6', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>Gen</span>
@@ -52,7 +60,7 @@ export default function RootLayout({ children }) {
                 </span>
                 <div style={{ width: '20px', height: '4px', backgroundColor: '#dc2626', borderRadius: '10px' }}></div>
               </div>
-            </div>
+            </Link>
 
             {/* Navigation Buttons (White Font Visible on Navy) */}
             <div style={{ display: 'flex', gap: '8px' }}>
