@@ -1,8 +1,10 @@
 @import "tailwindcss";
 
-/* Direct Native Styling Fallback */
 :root {
-  --bg-gradient: linear-gradient(-45deg, #ff007f, #7f00ff, #00f0ff, #ff00a0);
+  --primary-blue: #0099ff;
+  --primary-green: #7cd924;
+  --primary-orange: #ff9900;
+  --primary-pink: #ff007f;
 }
 
 * {
@@ -14,48 +16,48 @@ html, body {
   padding: 0 !important;
   width: 100% !important;
   min-height: 100vh !important;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif !important;
-  background: linear-gradient(-45deg, #ff007f, #7f00ff, #00f0ff, #ff00a0) !important;
-  background-size: 400% 400% !important;
-  animation: vibrantBG 12s ease infinite !important;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  /* Light vibrant background inspired by the logo's clean backing */
+  background: #f4f6f9 !important;
+  color: #1a1a1a !important;
+}
+
+/* Custom Card Styling matching the playful but clean theme */
+.glass-card, [class*="card"], main > div {
+  background: #ffffff !important;
+  border-radius: 24px !important;
+  border: 3px solid var(--primary-blue) !important;
+  box-shadow: 0 10px 0px 0px rgba(0, 153, 255, 0.15) !important;
+  padding: 25px !important;
+}
+
+/* Playful Buttons matching the logo colors */
+button, input[type="submit"] {
+  background: linear-gradient(135deg, var(--primary-pink), var(--primary-orange)) !important;
   color: #ffffff !important;
-}
-
-@keyframes vibrantBG {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-/* Glassmorphism containers */
-div, main, section, form {
-  color: #ffffff;
-}
-
-/* Target card containers */
-.glass-card, [class*="glass"], [class*="card"], main > div {
-  background: rgba(255, 255, 255, 0.2) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-  border-radius: 20px !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2) !important;
-}
-
-button {
-  background: linear-gradient(135deg, #ff007f, #7f00ff) !important;
-  color: #ffffff !important;
-  font-weight: bold !important;
+  font-weight: 800 !important;
+  text-transform: uppercase;
   border: none !important;
-  border-radius: 12px !important;
-  padding: 10px 20px !important;
+  border-radius: 50px !important;
+  padding: 12px 28px !important;
   cursor: pointer !important;
+  box-shadow: 0 4px 14px rgba(255, 0, 127, 0.4) !important;
+  transition: transform 0.2s ease !important;
+}
+
+button:hover {
+  transform: scale(1.05) !important;
 }
 
 input, select, textarea {
-  background: rgba(255, 255, 255, 0.9) !important;
+  background: #ffffff !important;
   color: #1a1a1a !important;
-  border: 1px solid #ddd !important;
-  border-radius: 8px !important;
-  padding: 10px !important;
+  border: 2px solid #dddddd !important;
+  border-radius: 12px !important;
+  padding: 12px !important;
+}
+
+input:focus {
+  border-color: var(--primary-green) !important;
+  outline: none;
 }
