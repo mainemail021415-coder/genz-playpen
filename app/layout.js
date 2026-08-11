@@ -2,7 +2,7 @@ import Link from 'next/link';
 import './globals.css';
 
 export const metadata = {
-  title: 'GenZi Playpen - Official Tracking Portal',
+  title: 'GenZi PlayPen - Official Tracking Portal',
   description: 'Parent Monitoring and Player Tracking Portal',
 };
 
@@ -45,7 +45,7 @@ export default function RootLayout({ children }) {
                 <span style={{ color: '#7cd924', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>l</span>
                 <span style={{ color: '#ff8c00', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>a</span>
                 <span style={{ color: '#ff1493', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>y</span>
-                <span style={{ color: '#00bfff', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>p</span>
+                <span style={{ color: '#00bfff', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>P</span>
                 <span style={{ color: '#7cd924', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>e</span>
                 <span style={{ color: '#ff8c00', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>n</span>
                 
