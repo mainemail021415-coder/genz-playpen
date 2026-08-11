@@ -81,11 +81,13 @@ button:hover, input[type="submit"]:hover {
   transform: translateY(4px) !important;
   box-shadow: 0px 2px 0px var(--genzi-navy) !important;
 }
-/* Pwersahang override para sa logo branding kahit may iba pang rule */
+/* Pwersahang override gamit ang kulay Neon Blue at Neon Red */
 .logo-blue {
-  color: #3b82f6 !important;
+  color: #00f0ff !important; /* Ito ang Neon Blue (Cyan/Electric Blue) */
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.3); /* Opsyonal: Nagdaragdag ng kaunting neon glow effect */
 }
 
 .logo-red {
-  color: #dc2626 !important;
+  color: #ff0055 !important; /* Pwersahang kulay Neon/Bright Red para bumagay sa neon blue */
+  text-shadow: 0 0 8px rgba(255, 0, 85, 0.3);
 }
