@@ -10,56 +10,84 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        {/* Playful Theme Navigation Bar */}
+        {/* Neon Dynamic Banner Header based on the image */}
         <header
           style={{
-            backgroundColor: '#ffffff',
-            borderBottom: '4px solid #7cd924', // Green border inspired by the logo frame
-            padding: '15px 20px',
+            background: 'linear-gradient(90deg, #ff007f 0%, #0099ff 35%, #7cd924 65%, #ff9900 100%)',
+            padding: '25px 20px',
             position: 'sticky',
             top: 0,
             zIndex: 100,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
+            boxShadow: '0 5px 25px rgba(0,0,0,0.3)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '15px'
           }}
         >
-          <nav
+          {/* Sub Badge: OFFICIAL TRACKING PORTAL */}
+          <div
             style={{
+              border: '2px solid #ff007f',
+              borderRadius: '50px',
+              padding: '4px 20px',
+              backgroundColor: 'rgba(13, 15, 20, 0.8)',
+              fontSize: '11px',
+              fontWeight: '800',
+              letterSpacing: '2px',
+              color: '#ff007f',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 0 10px rgba(255, 0, 127, 0.3)'
+            }}
+          >
+            ✨ OFFICIAL TRACKING PORTAL
+          </div>
+
+          <div
+            style={{
+              width: '100%',
               maxWidth: '1000px',
-              margin: '0 auto',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               flexWrap: 'wrap',
-              gap: '10px'
+              gap: '15px'
             }}
           >
-            {/* Logo Text Brand Block */}
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <div style={{ fontSize: '24px', fontWeight: '900', letterSpacing: '-0.5px' }}>
-                <span style={{ color: '#0099ff' }}>G</span>
-                <span style={{ color: '#7cd924' }}>E</span>
-                <span style={{ color: '#ff9900' }}>N</span>
-                <span style={{ color: '#ff007f' }}>Z</span>
-                <span style={{ color: '#0099ff' }}>i</span>
-                <span style={{ color: '#1a1a1a', marginLeft: '5px' }}>PLAYPEN</span>
+            {/* Logo Text: GenZi PLAYPEN */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div 
+                style={{ 
+                  fontSize: '32px', 
+                  fontWeight: '900', 
+                  letterSpacing: '-1px',
+                  color: '#ffffff',
+                  textShadow: '3px 3px 0px #0d0f14, -1px -1px 0px #0d0f14, 1px -1px 0px #0d0f14, -1px 1px 0px #0d0f14'
+                }}
+              >
+                <span style={{ color: '#ff007f' }}>GENZi</span>{' '}
+                <span style={{ color: '#00f0ff' }}>PLAYPEN</span>
               </div>
-              <span style={{ fontSize: '11px', fontWeight: '700', color: '#0099ff', marginTop: '-3px', fontStyle: 'italic' }}>
-                "the third place."
-              </span>
+              {/* Stick Figure Icon Mimic */}
+              <span style={{ fontSize: '28px', color: '#00f0ff', textShadow: '2px 2px 0px #0d0f14' }}>🏃‍♂️</span>
             </div>
 
-            {/* Navigation Links */}
-            <div style={{ display: 'flex', gap: '8px' }}>
+            {/* Navigation Buttons (White Font Visible on Dark Base) */}
+            <div style={{ display: 'flex', gap: '10px' }}>
               <Link
                 href="/"
                 style={{
-                  color: '#1a1a1a',
+                  color: '#ffffff',
                   textDecoration: 'none',
                   fontWeight: '800',
                   fontSize: '14px',
-                  padding: '8px 16px',
+                  padding: '10px 20px',
                   borderRadius: '50px',
-                  backgroundColor: '#f0f4f8',
+                  backgroundColor: '#0d0f14',
+                  border: '2px solid #00f0ff',
+                  boxShadow: '0 0 10px rgba(0, 240, 255, 0.2)',
                   transition: 'all 0.2s ease',
                 }}
               >
@@ -68,13 +96,15 @@ export default function RootLayout({ children }) {
               <Link
                 href="/register"
                 style={{
-                  color: '#1a1a1a',
+                  color: '#ffffff',
                   textDecoration: 'none',
                   fontWeight: '800',
                   fontSize: '14px',
-                  padding: '8px 16px',
+                  padding: '10px 20px',
                   borderRadius: '50px',
-                  backgroundColor: '#f0f4f8',
+                  backgroundColor: '#0d0f14',
+                  border: '2px solid #ff007f',
+                  boxShadow: '0 0 10px rgba(255, 0, 127, 0.2)',
                   transition: 'all 0.2s ease',
                 }}
               >
@@ -83,24 +113,26 @@ export default function RootLayout({ children }) {
               <Link
                 href="/branch"
                 style={{
-                  color: '#1a1a1a',
+                  color: '#ffffff',
                   textDecoration: 'none',
                   fontWeight: '800',
                   fontSize: '14px',
-                  padding: '8px 16px',
+                  padding: '10px 20px',
                   borderRadius: '50px',
-                  backgroundColor: '#f0f4f8',
+                  backgroundColor: '#0d0f14',
+                  border: '2px solid #7cd924',
+                  boxShadow: '0 0 10px rgba(124, 217, 36, 0.2)',
                   transition: 'all 0.2s ease',
                 }}
               >
                 🏢 Branch Check-In
               </Link>
             </div>
-          </nav>
+          </div>
         </header>
 
-        {/* Main Content Area */}
-        <main style={{ maxWidth: '1000px', margin: '40px auto', padding: '0 20px' }}>
+        {/* Main Workspace Area */}
+        <main style={{ maxWidth: '1000px', margin: '50px auto', padding: '0 20px' }}>
           {children}
         </main>
       </body>
