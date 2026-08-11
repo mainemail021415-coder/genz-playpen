@@ -177,7 +177,7 @@ export default function HomePage() {
         </h1>
       </div>
 
-      {/* Navigation Buttons inside Component - REMOVED GREY BACKGROUND AND BORDER */}
+      {/* Navigation Buttons inside Component */}
       <div className="mb-8 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <button
@@ -306,7 +306,7 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Logs Card */}
+                {/* Logs Card - PINALINAW ANG MGA TEXT AT HEADERS */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
                   <h3 className="text-md font-bold !text-white mb-3 flex items-center gap-2">📜 History Log</h3>
                   {historyLogs.length === 0 ? (
@@ -315,22 +315,24 @@ export default function HomePage() {
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-sm">
                         <thead>
-                          <tr className="border-b border-slate-800 !text-white font-bold text-base">
-                            <th className="pb-2">Branch</th>
-                            <th className="pb-2">Status</th>
-                            <th className="pb-2">Petsa at Oras</th>
+                          {/* PINALITAN: Mula plain white/slate ginawang text-white at font-extrabold para litaw na litaw */}
+                          <tr className="border-b border-slate-700 text-white font-extrabold text-sm tracking-wider uppercase">
+                            <th className="pb-3 pt-1">Branch</th>
+                            <th className="pb-3 pt-1">Status</th>
+                            <th className="pb-3 pt-1">Petsa at Oras</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800">
                           {historyLogs.map((log) => (
-                            <tr key={log.id}>
-                              <td className="py-2.5 font-semibold !text-white text-sm">{log.branch_name}</td>
-                              <td className="py-2.5">
-                                <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold !text-white ${log.status === 'Active' ? 'bg-emerald-600' : 'bg-slate-700'}`}>
+                            <tr key={log.id} className="hover:bg-slate-800/30 transition-colors">
+                              <td className="py-3 font-bold !text-white text-sm">{log.branch_name}</td>
+                              <td className="py-3">
+                                <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-black !text-white ${log.status === 'Active' ? 'bg-emerald-600' : 'bg-slate-600'}`}>
                                   {log.status}
                                 </span>
                               </td>
-                              <td className="py-2.5 text-xs !text-slate-300 font-medium">{new Date(log.checked_in_at).toLocaleString('en-PH')}</td>
+                              {/* PINALITAN: Mula text-slate-300 ginawang text-slate-200 at font-semibold para luminaw ang oras */}
+                              <td className="py-3 text-sm text-slate-200 font-semibold">{new Date(log.checked_in_at).toLocaleString('en-PH')}</td>
                             </tr>
                           ))}
                         </tbody>
