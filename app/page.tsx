@@ -102,7 +102,7 @@ export default function HomePage() {
   };
 
   // --- STAFF CHECK-IN HANDLER ---
-  const handleCheckIn = async (e: React.FormEvent) => {
+  const handleCheckIn = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     if (!staffMembershipId.trim()) return;
 
@@ -145,7 +145,8 @@ export default function HomePage() {
   };
 
   // --- STAFF CHECK-OUT HANDLER ---
-  const handleCheckOut = async () => {
+  const handleCheckOut = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
     if (!staffMembershipId.trim()) return;
 
     const currentBranch = getActiveBranchName();
