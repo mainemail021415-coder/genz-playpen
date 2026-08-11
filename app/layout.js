@@ -2,7 +2,7 @@ import Link from 'next/link';
 import './globals.css';
 
 export const metadata = {
-  title: 'GenZi Playpen - QC Player Location Tracker',
+  title: 'GenZi Playpen - Official Tracking Portal',
   description: 'Parent Monitoring and Player Tracking Portal',
 };
 
@@ -10,45 +10,21 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        {/* Neon Dynamic Banner Header based on the image */}
+        {/* Clean Header with Soft Drop Shadow */}
         <header
           style={{
-            background: 'linear-gradient(90deg, #ff007f 0%, #0099ff 35%, #7cd924 65%, #ff9900 100%)',
-            padding: '25px 20px',
+            backgroundColor: '#ffffff',
+            padding: '20px 20px',
             position: 'sticky',
             top: 0,
             zIndex: 100,
-            boxShadow: '0 5px 25px rgba(0,0,0,0.3)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '15px'
+            boxShadow: '0 8px 25px rgba(0,0,0,0.05)'
           }}
         >
-          {/* Sub Badge: OFFICIAL TRACKING PORTAL */}
-          <div
+          <nav
             style={{
-              border: '2px solid #ff007f',
-              borderRadius: '50px',
-              padding: '4px 20px',
-              backgroundColor: 'rgba(13, 15, 20, 0.8)',
-              fontSize: '11px',
-              fontWeight: '800',
-              letterSpacing: '2px',
-              color: '#ff007f',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: '0 0 10px rgba(255, 0, 127, 0.3)'
-            }}
-          >
-            ✨ OFFICIAL TRACKING PORTAL
-          </div>
-
-          <div
-            style={{
-              width: '100%',
               maxWidth: '1000px',
+              margin: '0 auto',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
@@ -56,26 +32,36 @@ export default function RootLayout({ children }) {
               gap: '15px'
             }}
           >
-            {/* Logo Text: GenZi PLAYPEN */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div 
-                style={{ 
-                  fontSize: '32px', 
-                  fontWeight: '900', 
-                  letterSpacing: '-1px',
-                  color: '#ffffff',
-                  textShadow: '3px 3px 0px #0d0f14, -1px -1px 0px #0d0f14, 1px -1px 0px #0d0f14, -1px 1px 0px #0d0f14'
-                }}
-              >
-                <span style={{ color: '#ff007f' }}>GENZi</span>{' '}
-                <span style={{ color: '#00f0ff' }}>PLAYPEN</span>
+            {/* 3D Logo Identity matched to the Image with correct spelling case */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ fontSize: '34px', fontWeight: '900', letterSpacing: '-0.5px', display: 'flex', alignItems: 'center' }}>
+                <span style={{ color: '#00bfff', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>G</span>
+                <span style={{ color: '#7cd924', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>e</span>
+                <span style={{ color: '#ff8c00', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>n</span>
+                <span style={{ color: '#ff1493', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>Z</span>
+                <span style={{ color: '#13294b', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>i</span>
+                
+                <span style={{ color: '#00bfff', textShadow: '2px 2px 4px rgba(0,0,0,0.1)', marginLeft: '8px' }}>P</span>
+                <span style={{ color: '#7cd924', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>l</span>
+                <span style={{ color: '#ff8c00', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>a</span>
+                <span style={{ color: '#ff1493', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>y</span>
+                <span style={{ color: '#00bfff', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>p</span>
+                <span style={{ color: '#7cd924', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>e</span>
+                <span style={{ color: '#ff8c00', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>n</span>
+                
+                <span style={{ fontSize: '24px', marginLeft: '6px' }}>🏃‍♂️</span>
               </div>
-              {/* Stick Figure Icon Mimic */}
-              <span style={{ fontSize: '28px', color: '#00f0ff', textShadow: '2px 2px 0px #0d0f14' }}>🏃‍♂️</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                <div style={{ width: '20px', height: '4px', backgroundColor: '#00bfff', borderRadius: '10px' }}></div>
+                <span style={{ fontSize: '14px', fontWeight: '800', color: '#13294b', fontStyle: 'italic' }}>
+                  "the third place."
+                </span>
+                <div style={{ width: '20px', height: '4px', backgroundColor: '#ff8c00', borderRadius: '10px' }}></div>
+              </div>
             </div>
 
-            {/* Navigation Buttons (White Font Visible on Dark Base) */}
-            <div style={{ display: 'flex', gap: '10px' }}>
+            {/* Navigation Buttons (White Font Visible on Navy) */}
+            <div style={{ display: 'flex', gap: '8px' }}>
               <Link
                 href="/"
                 style={{
@@ -85,10 +71,9 @@ export default function RootLayout({ children }) {
                   fontSize: '14px',
                   padding: '10px 20px',
                   borderRadius: '50px',
-                  backgroundColor: '#0d0f14',
-                  border: '2px solid #00f0ff',
-                  boxShadow: '0 0 10px rgba(0, 240, 255, 0.2)',
-                  transition: 'all 0.2s ease',
+                  backgroundColor: '#00bfff',
+                  boxShadow: '0px 4px 0px #13294b',
+                  transition: 'all 0.1s ease',
                 }}
               >
                 🔍 Search Player
@@ -102,10 +87,9 @@ export default function RootLayout({ children }) {
                   fontSize: '14px',
                   padding: '10px 20px',
                   borderRadius: '50px',
-                  backgroundColor: '#0d0f14',
-                  border: '2px solid #ff007f',
-                  boxShadow: '0 0 10px rgba(255, 0, 127, 0.2)',
-                  transition: 'all 0.2s ease',
+                  backgroundColor: '#ff1493',
+                  boxShadow: '0px 4px 0px #13294b',
+                  transition: 'all 0.1s ease',
                 }}
               >
                 📝 Register
@@ -119,20 +103,19 @@ export default function RootLayout({ children }) {
                   fontSize: '14px',
                   padding: '10px 20px',
                   borderRadius: '50px',
-                  backgroundColor: '#0d0f14',
-                  border: '2px solid #7cd924',
-                  boxShadow: '0 0 10px rgba(124, 217, 36, 0.2)',
-                  transition: 'all 0.2s ease',
+                  backgroundColor: '#7cd924',
+                  boxShadow: '0px 4px 0px #13294b',
+                  transition: 'all 0.1s ease',
                 }}
               >
-                🏢 Branch Check-In
+                🏢 Branch Check
               </Link>
             </div>
-          </div>
+          </nav>
         </header>
 
-        {/* Main Workspace Area */}
-        <main style={{ maxWidth: '1000px', margin: '50px auto', padding: '0 20px' }}>
+        {/* Main Interface Wrapper */}
+        <main style={{ maxWidth: '1000px', margin: '40px auto', padding: '0 20px' }}>
           {children}
         </main>
       </body>
