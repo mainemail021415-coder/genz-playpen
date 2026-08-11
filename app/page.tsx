@@ -86,7 +86,7 @@ export default function HomePage() {
       setHistoryLogs(logs);
     }
 
-    setSearchLoading(false); // Inayos dito para tumawag sa tamang setter function
+    setSearchLoading(false);
   };
 
   // --- STAFF PIN HANDLER ---
@@ -309,9 +309,10 @@ export default function HomePage() {
                 <div className="space-y-6 pt-2">
                   
                   {/* Basic Information Card */}
-                  <div className="bg-slate-950/80 border border-white/15 rounded-2xl p-6 shadow-xl space-y-4">
+                  <div className="bg-slate-900/90 border border-white/15 rounded-2xl p-6 shadow-xl space-y-4">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-white/10 pb-4">
                       <div>
+                        {/* Ginawang text-white para litaw na litaw ang pangalan */}
                         <h3 className="text-2xl font-black text-white flex items-center gap-2">
                           <User className="w-6 h-6 text-pink-400" /> {playerInfo.full_name}
                         </h3>
@@ -321,24 +322,25 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-slate-300">
+                    {/* Ginawang text-slate-100 para sa malinaw na subdetails */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-slate-100">
                       <div className="flex items-center gap-2">
-                        <ShieldCheck className="w-4 h-4 text-slate-400" />
-                        <span><strong>Magulang:</strong> {playerInfo.parent_name}</span>
+                        <ShieldCheck className="w-4 h-4 text-pink-400" />
+                        <span><strong className="text-white">Magulang:</strong> {playerInfo.parent_name}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-slate-400" />
-                        <span><strong>Contact Number:</strong> {playerInfo.parent_phone}</span>
+                        <Phone className="w-4 h-4 text-cyan-400" />
+                        <span><strong className="text-white">Contact Number:</strong> {playerInfo.parent_phone}</span>
                       </div>
                     </div>
 
                     {/* Current Status Box */}
                     <div className={`p-4 rounded-xl border backdrop-blur-md transition-all ${
                       historyLogs[0]?.status === 'Active' 
-                        ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-200' 
-                        : 'bg-slate-900/80 border-white/10 text-slate-300'
+                        ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-100' 
+                        : 'bg-slate-950/80 border-white/10 text-slate-100'
                     }`}>
-                      <span className="text-xs font-bold tracking-wider uppercase opacity-75 block mb-1">
+                      <span className="text-xs font-bold tracking-wider uppercase text-slate-300 block mb-1">
                         CURRENT STATUS
                       </span>
                       {historyLogs.length > 0 ? (
@@ -347,33 +349,34 @@ export default function HomePage() {
                             {historyLogs[0].status === 'Active' ? (
                               <span className="text-emerald-400">🟢 Active sa {historyLogs[0].branch_name}</span>
                             ) : (
-                              <span className="text-slate-400">⚪ Checked Out ({historyLogs[0].branch_name})</span>
+                              <span className="text-white">⚪ Checked Out ({historyLogs[0].branch_name})</span>
                             )}
                           </div>
-                          <div className="text-xs opacity-70 mt-1 flex items-center gap-1">
+                          {/* Ginawang text-slate-300 para visible ang timestamp */}
+                          <div className="text-xs text-slate-300 mt-1 flex items-center gap-1">
                             <Clock className="w-3.5 h-3.5" />
                             Huling Na-update: {new Date(historyLogs[0].checked_in_at).toLocaleString('en-PH')}
                           </div>
                         </div>
                       ) : (
-                        <span className="text-slate-400 text-sm">Wala pang naitalang check-in record.</span>
+                        <span className="text-slate-300 text-sm">Wala pang naitalang check-in record.</span>
                       )}
                     </div>
                   </div>
 
                   {/* History Logs Table */}
-                  <div className="bg-slate-950/80 border border-white/15 rounded-2xl p-6 shadow-xl space-y-4">
+                  <div className="bg-slate-900/90 border border-white/15 rounded-2xl p-6 shadow-xl space-y-4">
                     <h3 className="text-lg font-bold text-white flex items-center gap-2">
                       📜 Check-in / Check-out History Log
                     </h3>
 
                     {historyLogs.length === 0 ? (
-                      <p className="text-slate-400 text-sm">Walang history record.</p>
+                      <p className="text-slate-300 text-sm">Walang history record.</p>
                     ) : (
                       <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm text-slate-300">
+                        <table className="w-full text-left text-sm text-slate-200">
                           <thead>
-                            <tr className="border-b border-white/10 text-slate-400 font-bold">
+                            <tr className="border-b border-white/10 text-slate-100 font-bold">
                               <th className="pb-3 px-2">QC Branch</th>
                               <th className="pb-3 px-2">Status</th>
                               <th className="pb-3 px-2">Petsa at Oras</th>
@@ -386,13 +389,13 @@ export default function HomePage() {
                                 <td className="py-3 px-2">
                                   <span className={`inline-block px-3 py-1 rounded-full text-xs font-extrabold ${
                                     log.status === 'Active'
-                                      ? 'bg-emerald-500/80 text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]'
-                                      : 'bg-slate-700/80 text-slate-300'
+                                      ? 'bg-emerald-600 text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                                      : 'bg-slate-700 text-white'
                                   }`}>
                                     {log.status}
                                   </span>
                                 </td>
-                                <td className="py-3 px-2 text-slate-400">
+                                <td className="py-3 px-2 text-slate-200">
                                   {new Date(log.checked_in_at).toLocaleString('en-PH', {
                                     dateStyle: 'medium',
                                     timeStyle: 'short',
