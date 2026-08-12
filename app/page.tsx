@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Search, IdCard, Building2, Sparkles, Lock, Unlock, Clock, User, Phone, ShieldCheck } from 'lucide-react';
+import { Sparkles, Lock, Unlock, Clock, User, Phone, ShieldCheck } from 'lucide-react';
 
 interface PlayerData {
   full_name: string;
@@ -159,11 +159,8 @@ export default function HomePage() {
 
   return (
     <div id="playpen-portal-root" className="w-full bg-slate-950 rounded-3xl p-6 md:p-8 border border-white/10 shadow-2xl relative overflow-hidden">
-      {/* 
-        CRITICAL OVERRIDE INJECTION: 
-        Pilit na babasagin nito ang anumang panlabas na CSS framework (tulad ng ibang themes) 
-        upang gawing malinaw at matingkad ang mga font elements sa container na ito.
-      */}
+      
+      {/* INJECTED CSS OVERRIDES */}
       <style dangerouslySetInnerHTML={{__html: `
         #playpen-portal-root h1, 
         #playpen-portal-root h2, 
@@ -172,7 +169,7 @@ export default function HomePage() {
         #playpen-portal-root td, 
         #playpen-portal-root span, 
         #playpen-portal-root strong, 
-        #playpen-portal-root div {
+        #playpen-portal-root div:not(.nav-btn-text) {
           color: #ffffff !important;
         }
         #playpen-portal-root .text-pink-400 { color: #f472b6 !important; }
@@ -180,9 +177,14 @@ export default function HomePage() {
         #playpen-portal-root .text-slate-300 { color: #cbd5e1 !important; }
         #playpen-portal-root .text-slate-400 { color: #94a3b8 !important; }
         
-        /* Siguradong maitim at mababasa ang text sa loob ng puting search input */
         #playpen-portal-root input[type="text"].search-input-field {
           color: #0f172a !important;
+        }
+
+        /* FIXED: Pwersahang ginawang solid black ang kulay ng tatlong main navigation buttons */
+        #playpen-portal-root .nav-btn-text {
+          color: #000000 !important;
+          font-weight: 900 !important;
         }
       `}} />
 
@@ -203,7 +205,7 @@ export default function HomePage() {
         </h1>
       </div>
 
-      {/* Navigation Buttons inside Component */}
+      {/* Navigation Buttons - NO ICONS, TEXT IS PURE BLACK */}
       <div className="mb-8 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <button
@@ -214,10 +216,7 @@ export default function HomePage() {
                 : 'bg-slate-900 border border-slate-800 hover:bg-slate-800'
             }`}
           >
-            <div className="flex items-center gap-3">
-              <Search className="w-4 h-4 text-pink-400" />
-              <div>SEARCH PLAYER</div>
-            </div>
+            <div className="nav-btn-text">SEARCH PLAYER</div>
           </button>
 
           <button
@@ -228,10 +227,7 @@ export default function HomePage() {
                 : 'bg-slate-900 border border-slate-800 hover:bg-slate-800'
             }`}
           >
-            <div className="flex items-center gap-3">
-              <IdCard className="w-4 h-4 text-cyan-400" />
-              <div>MEMBERSHIP</div>
-            </div>
+            <div className="nav-btn-text">MEMBERSHIP</div>
           </button>
 
           <button
@@ -242,10 +238,7 @@ export default function HomePage() {
                 : 'bg-slate-900 border border-slate-800 hover:bg-slate-800'
             }`}
           >
-            <div className="flex items-center gap-3">
-              <Building2 className="w-4 h-4 text-violet-400" />
-              <div>STAFF BRANCH</div>
-            </div>
+            <div className="nav-btn-text">STAFF BRANCH</div>
           </button>
         </div>
       </div>
@@ -263,7 +256,7 @@ export default function HomePage() {
               </p>
             </div>
 
-            {/* FIXED SEARCH INPUT BAR */}
+            {/* SEARCH INPUT BAR */}
             <form onSubmit={handleSearchPlayer} className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto">
               <input
                 type="text"
@@ -370,7 +363,7 @@ export default function HomePage() {
         {/* Tab 2: Membership Info */}
         {activeTab === 'membership' && (
           <div className="space-y-4 max-w-2xl mx-auto text-center">
-            <h2 className="text-xl font-bold text-cyan-400 flex items-center justify-center gap-2"><IdCard className="w-5 h-5" /> Membership Tiers</h2>
+            <h2 className="text-xl font-bold text-cyan-400 flex items-center justify-center gap-2">Membership Tiers</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left pt-2">
               <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-slate-200">
                 <div className="text-cyan-400 font-bold">Standard Pass</div>
