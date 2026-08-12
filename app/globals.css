@@ -89,3 +89,20 @@ button:hover, input[type="submit"]:hover {
 .logo-red {
   color: #ff1493 !important; /* Hot Pink / Magenta mula sa letrang Z */
 }
+/* Custom Brand Colors for GenZi PlayPen Logo */
+.brand-blue {
+  color: #1e3a8a !important; /* Dark Blue */
+}
+
+.brand-red {
+  color: #991b1b !important; /* Dark Red */
+}
+
+/* Para sa sub-header lines sa ilalim ng text */
+.line-blue {
+  color: #2563eb !important;
+}
+
+.line-red {
+  color: #dc2626 !important;
+}
