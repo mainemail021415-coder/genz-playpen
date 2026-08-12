@@ -163,13 +163,13 @@ export default function HomePage() {
       {/* INJECTED CSS OVERRIDES */}
       <style dangerouslySetInnerHTML={{__html: `
         #playpen-portal-root h1, 
-        #playpen-portal-root h2:not(.tracker-title), 
+        #playpen-portal-root h2:not(.tracker-title):not(.staff-lock-title), 
         #playpen-portal-root h3, 
         #playpen-portal-root th, 
         #playpen-portal-root td, 
         #playpen-portal-root span, 
         #playpen-portal-root strong, 
-        #playpen-portal-root div:not(.nav-btn-text):not(.tracker-desc) {
+        #playpen-portal-root div:not(.nav-btn-text):not(.tracker-desc):not(.lock-icon-container) {
           color: #ffffff !important;
         }
         #playpen-portal-root .text-pink-400 { color: #f472b6 !important; }
@@ -187,15 +187,26 @@ export default function HomePage() {
           font-weight: 900 !important;
         }
 
-        /* IBINALIK SA ORIHINAL: Ang Parent Tracker title ay pink pa rin */
+        /* Parent Tracker Styles */
         #playpen-portal-root .tracker-title {
           color: #f472b6 !important;
         }
-        
-        /* TARGETED FIX: Ang dating gray na description lang ang ginawang black at bold */
         #playpen-portal-root .tracker-desc {
           color: #000000 !important;
           font-weight: 800 !important;
+        }
+
+        /* FIXED: Staff Access Login Visibility */
+        #playpen-portal-root .staff-lock-title {
+          color: #000000 !important;
+          font-weight: 900 !important;
+        }
+        #playpen-portal-root .lock-icon-container {
+          background-color: #f472b6 !important; /* Ginawang solid pink ang box para lumitaw */
+          border-color: #db2777 !important;
+        }
+        #playpen-portal-root .lock-icon-svg {
+          color: #ffffff !important; /* Puti ang lock icon sa loob ng pink box */
         }
       `}} />
 
@@ -259,11 +270,9 @@ export default function HomePage() {
         {activeTab === 'search' && (
           <div className="space-y-6">
             <div className="text-center max-w-xl mx-auto">
-              {/* NAKA-PINK AT MAY EMOJI ULIT */}
               <h2 className="tracker-title text-xl font-extrabold flex items-center justify-center gap-2 mb-2">
                 📍 Parent Player Tracker
               </h2>
-              {/* ETO LANG ANG BLACK AT BOLD NGAYON */}
               <div className="tracker-desc text-sm">
                 I-type ang Membership ID ng anak upang makita ang kasalukuyang lokasyon at history ng mga pumasok na branch.
               </div>
@@ -395,8 +404,12 @@ export default function HomePage() {
           <div className="max-w-md mx-auto py-4">
             {!isAuthenticated ? (
               <div className="text-center space-y-4">
-                <div className="w-12 h-12 bg-pink-500/10 text-pink-400 rounded-xl flex items-center justify-center mx-auto border border-pink-500/20"><Lock className="w-6 h-6" /></div>
-                <h2 className="text-xl font-bold text-white">Staff Access Only</h2>
+                {/* FIXED BACKGROUND AND ICON COLORS */}
+                <div className="lock-icon-container w-12 h-12 rounded-xl flex items-center justify-center mx-auto border shadow-sm">
+                  <Lock className="lock-icon-svg w-6 h-6" />
+                </div>
+                {/* FIXED BLACK TEXT FOR TITLE */}
+                <h2 className="staff-lock-title text-xl font-black">Staff Access Only</h2>
                 <form onSubmit={handlePinSubmit} className="space-y-3">
                   <input
                     type="password"
