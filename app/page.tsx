@@ -163,28 +163,39 @@ export default function HomePage() {
       {/* INJECTED CSS OVERRIDES */}
       <style dangerouslySetInnerHTML={{__html: `
         #playpen-portal-root h1, 
-        #playpen-portal-root h2, 
+        #playpen-portal-root h2:not(.tracker-title), 
         #playpen-portal-root h3, 
         #playpen-portal-root th, 
         #playpen-portal-root td, 
         #playpen-portal-root span, 
         #playpen-portal-root strong, 
-        #playpen-portal-root div:not(.nav-btn-text) {
+        #playpen-portal-root div:not(.nav-btn-text):not(.tracker-desc) {
           color: #ffffff !important;
         }
         #playpen-portal-root .text-pink-400 { color: #f472b6 !important; }
         #playpen-portal-root .text-cyan-400 { color: #22d3ee !important; }
-        #playpen-portal-root .text-slate-300 { color: #cbd5e1 !important; }
+        #playpen-portal-root .text-slate-300:not(.tracker-desc) { color: #cbd5e1 !important; }
         #playpen-portal-root .text-slate-400 { color: #94a3b8 !important; }
         
         #playpen-portal-root input[type="text"].search-input-field {
           color: #0f172a !important;
         }
 
-        /* FIXED: Pwersahang ginawang solid black ang kulay ng tatlong main navigation buttons */
+        /* Nav Buttons Text - Solid Black */
         #playpen-portal-root .nav-btn-text {
           color: #000000 !important;
           font-weight: 900 !important;
+        }
+
+        /* IBINALIK SA ORIHINAL: Ang Parent Tracker title ay pink pa rin */
+        #playpen-portal-root .tracker-title {
+          color: #f472b6 !important;
+        }
+        
+        /* TARGETED FIX: Ang dating gray na description lang ang ginawang black at bold */
+        #playpen-portal-root .tracker-desc {
+          color: #000000 !important;
+          font-weight: 800 !important;
         }
       `}} />
 
@@ -205,7 +216,7 @@ export default function HomePage() {
         </h1>
       </div>
 
-      {/* Navigation Buttons - NO ICONS, TEXT IS PURE BLACK */}
+      {/* Navigation Buttons */}
       <div className="mb-8 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <button
@@ -248,12 +259,14 @@ export default function HomePage() {
         {activeTab === 'search' && (
           <div className="space-y-6">
             <div className="text-center max-w-xl mx-auto">
-              <h2 className="text-xl font-extrabold text-pink-400 flex items-center justify-center gap-2 mb-2">
+              {/* NAKA-PINK AT MAY EMOJI ULIT */}
+              <h2 className="tracker-title text-xl font-extrabold flex items-center justify-center gap-2 mb-2">
                 📍 Parent Player Tracker
               </h2>
-              <p className="text-sm font-medium text-slate-300">
+              {/* ETO LANG ANG BLACK AT BOLD NGAYON */}
+              <div className="tracker-desc text-sm">
                 I-type ang Membership ID ng anak upang makita ang kasalukuyang lokasyon at history ng mga pumasok na branch.
-              </p>
+              </div>
             </div>
 
             {/* SEARCH INPUT BAR */}
