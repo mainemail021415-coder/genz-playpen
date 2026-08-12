@@ -162,14 +162,14 @@ export default function HomePage() {
       
       {/* INJECTED CSS OVERRIDES */}
       <style dangerouslySetInnerHTML={{__html: `
-        #playpen-portal-root h1, 
+        #playpen-portal-root h1:not(.main-title), 
         #playpen-portal-root h2:not(.tracker-title):not(.staff-lock-title), 
         #playpen-portal-root h3, 
         #playpen-portal-root th, 
         #playpen-portal-root td, 
-        #playpen-portal-root span, 
+        #playpen-portal-root span:not(.brand-blue):not(.brand-red), 
         #playpen-portal-root strong, 
-        #playpen-portal-root div:not(.nav-btn-text):not(.tracker-desc):not(.lock-icon-container) {
+        #playpen-portal-root div:not(.nav-btn-text):not(.tracker-desc):not(.lock-icon-container):not(.sub-header-text) {
           color: #ffffff !important;
         }
         #playpen-portal-root .text-pink-400 { color: #f472b6 !important; }
@@ -196,17 +196,28 @@ export default function HomePage() {
           font-weight: 800 !important;
         }
 
-        /* FIXED: Staff Access Login Visibility */
+        /* Staff Portal Styles */
         #playpen-portal-root .staff-lock-title {
           color: #000000 !important;
           font-weight: 900 !important;
         }
         #playpen-portal-root .lock-icon-container {
-          background-color: #f472b6 !important; /* Ginawang solid pink ang box para lumitaw */
+          background-color: #f472b6 !important;
           border-color: #db2777 !important;
         }
         #playpen-portal-root .lock-icon-svg {
-          color: #ffffff !important; /* Puti ang lock icon sa loob ng pink box */
+          color: #ffffff !important;
+        }
+
+        /* FIXED BRAND COLORS (DARK BLUE & DARK RED Z) */
+        #playpen-portal-root .brand-blue {
+          color: #1e3a8a !important; /* Tailwind's blue-900 (Dark Blue) */
+        }
+        #playpen-portal-root .brand-red {
+          color: #991b1b !important; /* Tailwind's red-800 (Dark Red) */
+        }
+        #playpen-portal-root .sub-header-text {
+          color: #0f172a !important; /* Dark Slate para sa description subtitle */
         }
       `}} />
 
@@ -215,16 +226,25 @@ export default function HomePage() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[300px] h-[300px] bg-cyan-500/20 rounded-full blur-[80px] pointer-events-none" />
 
       {/* Mini Header Inside the Box */}
-      <div className="text-center mb-8 space-y-2 relative z-10">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-pink-500 bg-pink-950/80 text-pink-200 text-xs font-bold uppercase tracking-widest shadow-md">
+      <div className="text-center mb-8 space-y-1 relative z-10">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-pink-500 bg-pink-950/80 text-pink-200 text-xs font-bold uppercase tracking-widest shadow-md mb-2">
           <Sparkles className="w-3.5 h-3.5 animate-pulse text-pink-400" /> Official Tracking Portal
         </div>
         
-        <h1 className="text-3xl md:text-4xl font-black tracking-tight pt-2">
-          <span className="text-blue-500">Gen</span>
-          <span className="text-red-600">Z</span>
-          <span className="text-blue-500">i PlayPen</span>
+        {/* NEW SPECIFIC BRAND BRANDING (DARK BLUE & DARK RED) */}
+        <h1 className="main-title text-4xl font-black tracking-tight flex items-center justify-center gap-1">
+          <span className="brand-blue">Gen</span>
+          <span className="brand-red">Z</span>
+          <span className="brand-blue">i PlayPen</span>
+          <span className="text-2xl ml-1">🏃‍♂️</span>
         </h1>
+        
+        {/* Sub-header text matching the layout */}
+        <div className="flex items-center justify-center gap-2 text-sm font-bold pt-0.5">
+          <span className="text-blue-600 font-black">—</span>
+          <span className="sub-header-text italic font-extrabold">"the third place."</span>
+          <span className="text-red-700 font-black">—</span>
+        </div>
       </div>
 
       {/* Navigation Buttons */}
@@ -404,11 +424,9 @@ export default function HomePage() {
           <div className="max-w-md mx-auto py-4">
             {!isAuthenticated ? (
               <div className="text-center space-y-4">
-                {/* FIXED BACKGROUND AND ICON COLORS */}
                 <div className="lock-icon-container w-12 h-12 rounded-xl flex items-center justify-center mx-auto border shadow-sm">
                   <Lock className="lock-icon-svg w-6 h-6" />
                 </div>
-                {/* FIXED BLACK TEXT FOR TITLE */}
                 <h2 className="staff-lock-title text-xl font-black">Staff Access Only</h2>
                 <form onSubmit={handlePinSubmit} className="space-y-3">
                   <input
